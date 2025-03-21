@@ -3,142 +3,143 @@ package com.mygame;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.audio.Sound;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
-import com.badlogic.gdx.physics.box2d.*;
+import com.mygame.model.world.GameWorld;
+import com.mygame.model.entities.Hero;
+import com.mygame.model.entities.Background;
+import com.mygame.view.AnimationStorage;
+import com.mygame.view.TextureStorage;
+import com.mygame.view.SoundManager;
+import com.mygame.view.Drawable;
+import com.mygame.viewmodel.HeroViewModel;
+import com.mygame.viewmodel.BackgroundViewModel;
+import com.mygame.controller.GameController;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Comparator;
 
+/**
+ * Основной класс приложения, который инициализирует и управляет игровым процессом.
+ * Выступает в роли композиционного корня приложения, соединяя все слои вместе.
+ */
 public class Main implements ApplicationListener {
-    private Texture background;
-    private Texture Earth;
+    // Model
+    private GameWorld gameWorld;
+    private Hero hero;
+    private Background background;
+
+    // View
     private SpriteBatch spriteBatch;
     private StretchViewport viewport;
-    private Animation<TextureRegion> standingAnimation;
-    private Animation<TextureRegion> crouchingAnimation;
-    private Animation<TextureRegion> jumpingAnimation;
-    private Animation<TextureRegion> currentAnimation;
-    private Animation<TextureRegion> squatingAnimation;
-    private float stateTime;
-    private float heroX = 0; // Начальная позиция X
-    private float heroY = 0; // Начальная позиция Y
-    private boolean facingRight = true; // По умолчанию персонаж смотрит вправо
-    private Sound sound;
-    private Sound soundcrouch;
+    private AnimationStorage animationStorage;
+    private TextureStorage textureStorage;
+    private SoundManager soundManager;
 
-    private World world; // Физический мир
-    private Body groundBody; // Тело земли
-    private Body heroBody; // Тело персонажа
+    // ViewModel
+    private HeroViewModel heroViewModel;
+    private BackgroundViewModel backgroundViewModel;
+    private List<Drawable> drawableEntities;
 
-    private enum HeroState {
-        STANDING, CROUCHING, JUMPING, LANDING, SQUAT
-    }
-
-    private HeroState heroState = HeroState.STANDING; // Начальное состояние
-    private float landingTimer = 0f; // Таймер для отслеживания времени после приземления
-    private float jumpVelocity = 4f; // Начальная скорость прыжка
-    private float gravity = -25f; // Гравитация (ускорение падения)
+    // Controller
+    private GameController gameController;
 
     @Override
     public void create() {
+        // Инициализация View компонентов
         spriteBatch = new SpriteBatch();
-        background = new Texture("forest.jpg");
-        Earth = new Texture("earth.png");
-        viewport = new StretchViewport(10, 5); // Соотношение 16:9
-        sound = Gdx.audio.newSound(Gdx.files.internal("koks.mp3"));
-        soundcrouch = Gdx.audio.newSound(Gdx.files.internal("soundcrouch.mp3"));
+        viewport = new StretchViewport(10, 5);
+        textureStorage = new TextureStorage();
+        animationStorage = new AnimationStorage();
+        soundManager = new SoundManager();
+        drawableEntities = new ArrayList<>();
 
-        // Создание физического мира
-        world = new World(new Vector2(0, -9.8f), true); // Сила гравитации по умолчанию
+        // Инициализация Model
+        gameWorld = new GameWorld(10, 5);
 
-        // Создание земли как статического тела
-        createGround();
+        // Создание фона
+        background = new Background(1, 10, 5);
+        gameWorld.addEntity(background);
 
-        // Создание персонажа
-        createHero();
+        // Создание героя
+        hero = new Hero(2, 0.3f, 0.25f);
+        gameWorld.addEntity(hero);
 
+        // Инициализация ViewModel
+        backgroundViewModel = new BackgroundViewModel(background, textureStorage);
+        heroViewModel = new HeroViewModel(hero, animationStorage);
 
-        // Загрузка кадров для состояния стояния
-        Array<TextureRegion> standingFrames = new Array<>();
-        standingFrames.add(new TextureRegion(new Texture("stand.png"))); // Один кадр для стояния
-        standingAnimation = new Animation<>(0.1f, standingFrames);
+        // Добавляем все drawable сущности в список для отрисовки
+        drawableEntities.add(backgroundViewModel);
+        drawableEntities.add(heroViewModel);
 
-        // Загрузка кадров для состояния приседания
-        Array<TextureRegion> crouchingFrames = new Array<>();
-        crouchingFrames.add(new TextureRegion(new Texture("crouch.png"))); // Один кадр для приседания
-        crouchingAnimation = new Animation<>(0.1f, crouchingFrames);
+        // Сортируем по Z-индексу для правильного порядка отрисовки
+        drawableEntities.sort(Comparator.comparingInt(Drawable::getZIndex));
 
-        // Загрузка кадров для состояния прыжка
-        Array<TextureRegion> jumpingFrames = new Array<>();
-        jumpingFrames.add(new TextureRegion(new Texture("jump.png"))); // Один кадр для прыжка
-        jumpingAnimation = new Animation<>(0.1f, jumpingFrames);
+        // Инициализация Controller
+        gameController = new GameController(gameWorld, hero);
 
-        Array<TextureRegion> squatingFrames = new Array<>();
-        squatingFrames.add(new TextureRegion(new Texture("squat.png"))); // Один кадр для приседа
-        squatingAnimation = new Animation<>(0.1f, squatingFrames);
-
-        // Начальная анимация — стояние
-        currentAnimation = standingAnimation;
-        stateTime = 0f; // Инициализация времени
-    }
-
-    private void createHero() {
-        // Создаем тело персонажа
-        BodyDef heroBodyDef = new BodyDef();
-        heroBodyDef.type = BodyDef.BodyType.DynamicBody;
-        heroBodyDef.position.set(heroX, 2); // Начальная позиция персонажа
-
-        heroBody = world.createBody(heroBodyDef);
-
-        // Создаем форму персонажа (в данном случае прямоугольник)
-        PolygonShape shape = new PolygonShape();
-        shape.setAsBox(0.5f, 0.5f); // Размеры персонажа
-
-        FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape;
-        fixtureDef.density = 1.0f; // Устанавливаем плотность тела
-        heroBody.createFixture(fixtureDef);
-        shape.dispose(); // Освобождаем ресурсы
-    }
-
-    private void createGround() {
-        // Создаем землю как статическое тело
-        BodyDef groundBodyDef = new BodyDef();
-        groundBodyDef.type = BodyDef.BodyType.StaticBody; // Статическое тело
-        groundBodyDef.position.set(0, -1); // Позиция земли (по оси Y)
-
-        groundBody = world.createBody(groundBodyDef);
-
-        // Формируем землю как прямоугольник
-        PolygonShape groundShape = new PolygonShape();
-        groundShape.setAsBox(10f, 1f); // Ширина земли = 10, высота = 1
-
-        // Создаем Fixture для тела земли
-        groundBody.createFixture(groundShape, 0); // Масса 0, потому что это статическое тело
-
-        groundShape.dispose(); // Освобождаем память после использования
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        viewport.update(width, height, true); // true centers the camera
+        // Обработка музыки
+        handleMusicInput();
     }
 
     @Override
     public void render() {
-        input();
-        logic();
-        world.step(1 / 60f, 6, 2); // Обновляем физический мир
+        float deltaTime = Gdx.graphics.getDeltaTime();
 
-        draw();
+        // Обработка ввода (Controller)
+        gameController.handleInput();
+
+        // Обработка звуков
+        handleSoundEffects();
+
+        // Обработка музыки
+        handleMusicInput();
+
+        // Обновление состояния игры (Model)
+        gameWorld.update();
+
+        // Обновление ViewModel
+        for (Drawable drawable : drawableEntities) {
+            drawable.update(deltaTime);
+        }
+
+        // Отрисовка (View)
+        Gdx.gl.glClearColor(0.15f, 0.15f, 0.2f, 1f);
+        Gdx.gl.glClear(com.badlogic.gdx.graphics.GL20.GL_COLOR_BUFFER_BIT);
+
+        viewport.apply();
+        spriteBatch.setProjectionMatrix(viewport.getCamera().combined);
+
+        spriteBatch.begin();
+        for (Drawable drawable : drawableEntities) {
+            drawable.draw(spriteBatch);
+        }
+        spriteBatch.end();
+    }
+
+    private void handleSoundEffects() {
+        // Проигрываем звук приземления только один раз
+        if (hero.shouldPlayLandingSound()) {
+            soundManager.playCrouchSound();
+        }
+    }
+
+    private void handleMusicInput() {
+        // Включаем/выключаем музыку по клавише M
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            if (Gdx.input.isKeyPressed(Input.Keys.M)) {
+                soundManager.playBackgroundMusic();
+                Gdx.input.setInputProcessor(null);
+            } else {
+                soundManager.stopBackgroundMusic();
+            }
+        }
+    }
+
+    @Override
+    public void resize(int width, int height) {
+        viewport.update(width, height, true);
     }
 
     @Override
@@ -147,116 +148,11 @@ public class Main implements ApplicationListener {
     @Override
     public void resume() {}
 
-    private void input() {
-        float speed = 4f;
-        float delta = Gdx.graphics.getDeltaTime();
-
-        // Управление движением (D - вправо, A - влево)
-        if (Gdx.input.isKeyPressed(Input.Keys.D) && !Gdx.input.isKeyPressed(Input.Keys.S)) {
-            heroX += speed * delta;
-            if (!facingRight) {
-                facingRight = true;
-            }
-        } else if (Gdx.input.isKeyPressed(Input.Keys.A) && !Gdx.input.isKeyPressed(Input.Keys.S)) {
-            heroX -= speed * delta;
-            if (facingRight) {
-                facingRight = false;
-            }
-        }
-
-        // Прыжок при нажатии W
-        if (Gdx.input.isKeyJustPressed(Input.Keys.W) && heroState == HeroState.STANDING) {
-            heroState = HeroState.JUMPING; // Переводим в состояние прыжка
-            currentAnimation = jumpingAnimation; // Анимация прыжка
-            jumpVelocity = 12f; // Начальная скорость прыжка
-        }
-
-        // Приседание при нажатии S
-        if (Gdx.input.isKeyPressed(Input.Keys.S) && heroState == HeroState.STANDING) {
-            heroState = HeroState.SQUAT;
-            currentAnimation = squatingAnimation;
-        }
-        if (!Gdx.input.isKeyPressed(Input.Keys.S) && heroState == HeroState.SQUAT) {
-            heroState = HeroState.STANDING;
-            currentAnimation = standingAnimation;
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
-            sound.play();
-        }
-        
-    }
-
-
-    private void logic() {
-        float delta = Gdx.graphics.getDeltaTime();
-
-        // Обрабатываем состояние прыжка
-        if (heroState == HeroState.JUMPING) {
-            heroY += jumpVelocity * delta;
-            jumpVelocity += gravity * delta; // Применяем гравитацию
-
-            // Проверяем, приземлился ли персонаж
-            if (heroY <= 0) {
-                heroY = 0;
-                heroState = HeroState.LANDING; // Переходим в состояние приземления
-                soundcrouch.play(); // Звук приземления
-                currentAnimation = crouchingAnimation; // Переходим в анимацию приземления
-                landingTimer = 0.3f; // Задержка на приземление (0.3 секунды)
-            }
-        }
-
-        // После приземления автоматически переходим в стояние
-        if (heroState == HeroState.LANDING) {
-            landingTimer -= delta;
-            if (landingTimer <= 0) {
-                heroState = HeroState.STANDING; // После задержки переходим в стояние
-                currentAnimation = standingAnimation; // Переходим в анимацию стояния
-            }
-        }
-
-        // Ограничиваем героя в пределах экрана
-        float worldWidth = viewport.getWorldWidth();
-        heroX = MathUtils.clamp(heroX, 0, worldWidth - 2);
-    }
-
-
-    private void draw() {
-        ScreenUtils.clear(Color.BLACK);
-        viewport.apply();
-        spriteBatch.setProjectionMatrix(viewport.getCamera().combined);
-        spriteBatch.begin();
-
-        // Отрисовка фона
-        spriteBatch.draw(background, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
-        spriteBatch.draw(Earth, 0, -2, viewport.getWorldWidth(), 1); // Земля (платформа)
-
-        // Отрисовка текущего кадра анимации
-        stateTime += Gdx.graphics.getDeltaTime(); // Обновляем время анимации
-        TextureRegion currentFrame = currentAnimation.getKeyFrame(stateTime, true);
-
-        // Отражаем текстуру, если нужно
-        if (!facingRight && !currentFrame.isFlipX()) {
-            currentFrame.flip(true, false);
-        } else if (facingRight && currentFrame.isFlipX()) {
-            currentFrame.flip(true, false);
-        }
-
-        // Отрисовка персонажа
-        // Используем физическое положение героя для отрисовки
-        spriteBatch.draw(currentFrame, heroX, heroY + 0.2f, 1, 1); // heroX и heroY — координаты героя
-
-        spriteBatch.end();
-    }
-
-
     @Override
     public void dispose() {
         spriteBatch.dispose();
-        background.dispose();
-        Earth.dispose();
-        standingAnimation.getKeyFrame(0).getTexture().dispose();
-        crouchingAnimation.getKeyFrame(0).getTexture().dispose();
-        jumpingAnimation.getKeyFrame(0).getTexture().dispose();
+        animationStorage.dispose();
+        textureStorage.dispose();
+        soundManager.dispose();
     }
 }
