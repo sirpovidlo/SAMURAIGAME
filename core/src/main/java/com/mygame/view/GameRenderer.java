@@ -1,10 +1,11 @@
 package com.mygame.view;
 
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
-import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygame.model.GameWorld;
 import com.badlogic.gdx.Gdx;
 
@@ -13,55 +14,55 @@ public class GameRenderer {
     private Texture groundTexture;
     private Texture backgroundImage;
     private GameWorld gameWorld;
-    private Box2DDebugRenderer debugRenderer; // Отладочный рендерер для хитбоксов
-    private World world;
+    private Box2DDebugRenderer debugRenderer;
+    private Viewport viewport;
 
-    public GameRenderer(SpriteBatch batch, GameWorld gameWorld) {
+    public GameRenderer(SpriteBatch batch, GameWorld gameWorld, Viewport viewport) {
         this.batch = batch;
         this.gameWorld = gameWorld;
-        this.world = gameWorld.getWorld(); // Получаем физический мир
+        this.viewport = viewport;
 
-        backgroundImage = new Texture("background.jpg"); // Фон игры
-        groundTexture = new Texture("groud1.png"); // Текстура земли
-
-        debugRenderer = new Box2DDebugRenderer(); // Создаем отладочный рендерер
+        backgroundImage = new Texture("background.jpg");
+        groundTexture = new Texture("groud1.png");
+        debugRenderer = new Box2DDebugRenderer();
     }
 
     public void render() {
+        // Очистка буфера кадра
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        // Устанавливаем проекционную матрицу из viewport
+        batch.setProjectionMatrix(viewport.getCamera().combined);
+
         batch.begin();
 
-        // Рисуем фон
-        batch.draw(backgroundImage, 0, 0, 800, 600);
-
-        // Рисуем землю
+        // Рисуем фон на весь виртуальный экран
+        // Рисуем фон (теперь с правильным масштабированием)
+        batch.draw(backgroundImage,
+            0, 0,
+            viewport.getWorldWidth(), viewport.getWorldHeight());
         // Рисуем землю
         Vector2 groundPos = gameWorld.getGroundPosition();
-        float screenWidth = Gdx.graphics.getWidth();
         batch.draw(groundTexture,
-            groundPos.x - screenWidth / 2, groundPos.y - 1,
-            screenWidth, 2); // Ширина пола равна ширине экрана
-
-
+            groundPos.x - viewport.getWorldWidth()/2, groundPos.y - 1,
+            viewport.getWorldWidth(), 2);
 
         // Рисуем игрока
         Vector2 playerPos = gameWorld.getPlayer().getBody().getPosition();
-        float width = 40f;  // Должно совпадать с хитбоксом (2*2)
-        float height = 60f; // Должно совпадать с хитбоксом (3*2)
+        float width = 40f;
+        float height = 60f;
         batch.draw(gameWorld.getPlayer().getTexture(),
-            playerPos.x - width / 2, playerPos.y - height / 2,
+            playerPos.x - width/2, playerPos.y - height/2,
             width, height);
-
 
         batch.end();
 
-        // Рисуем хитбоксы
-        debugRenderer.render(world, batch.getProjectionMatrix());
+        // Рисуем хитбоксы (используем матрицу из viewport)
+        debugRenderer.render(gameWorld.getWorld(), viewport.getCamera().combined);
     }
-
 
     public void dispose() {
         groundTexture.dispose();
         backgroundImage.dispose();
-        debugRenderer.dispose(); // Освобождаем ресурсы отладочного рендерера
+        debugRenderer.dispose();
     }
 }

@@ -3,6 +3,7 @@ package com.mygame.model;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
+import com.mygame.Main;
 
 public class GameWorld {
     private World world; // Физический мир Box2D
@@ -11,7 +12,7 @@ public class GameWorld {
 
     public GameWorld() {
         // Создаем физический мир с гравитацией (0, -9.8)
-        world = new World(new Vector2(0, -9.8f), true);
+        world = new World(new Vector2(0, -15f), true); // Было -9.8, стало -15
 
         createGround(); // Создаем землю
         player = new Player(world, 0, 10); // Создаем игрока в начальной позиции (0, 10)
@@ -46,23 +47,19 @@ public class GameWorld {
 
     // Метод для создания земли в мире Box2D
     private void createGround() {
-        float screenWidth = Gdx.graphics.getWidth();  // Получаем ширину экрана
-        float screenHeight = Gdx.graphics.getHeight(); // Получаем высоту экрана
-
-        // Создаем статическое тело для пола
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
-        bodyDef.position.set(0, 0);  // Позиция пола по центру экрана по оси X и внизу экрана по Y
+        bodyDef.position.set(0, 0);
 
         groundBody = world.createBody(bodyDef);
 
-        // Устанавливаем размеры пола по экрану
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(screenWidth , 33);  // Пол занимает всю ширину экрана, высота 1
+        // Используем виртуальную ширину из Main
+        shape.setAsBox(Main.VIRTUAL_WIDTH, 33);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
-        fixtureDef.friction = 0.7f;  // Можно настроить трение пола
+        fixtureDef.friction = 0.7f;
         groundBody.createFixture(fixtureDef);
         shape.dispose();
     }

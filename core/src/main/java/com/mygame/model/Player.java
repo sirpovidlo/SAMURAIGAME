@@ -1,8 +1,10 @@
 package com.mygame.model;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
+import com.mygame.Main;
 
 public class Player extends GameObject {
     private static final float MOVE_SPEED = 500f; // Фиксированная скорость движения
@@ -55,18 +57,26 @@ public class Player extends GameObject {
 
     @Override
     public void update() {
+        Vector2 position = body.getPosition();
         Vector2 velocity = body.getLinearVelocity();
 
-        // Ограничение максимальной горизонтальной скорости
+        // Используем виртуальные границы из Main
+        float minX = 0 + 20;
+        float maxX = Main.VIRTUAL_WIDTH - 20;
+
+        if (position.x < minX) {
+            body.setTransform(minX, position.y, 0);
+            body.setLinearVelocity(0, velocity.y);
+        } else if (position.x > maxX) {
+            body.setTransform(maxX, position.y, 0);
+            body.setLinearVelocity(0, velocity.y);
+        }
+
         if (Math.abs(velocity.x) > MAX_SPEED) {
             body.setLinearVelocity(Math.signum(velocity.x) * MAX_SPEED, velocity.y);
         }
-
-        // Убедимся, что на персонажа действует гравитация
-        if (velocity.y > -10f) { // Это нужно, если он зависает
-            body.applyForceToCenter(0, -5f, true);
-        }
     }
+
 
 
     private boolean isMoving() {
