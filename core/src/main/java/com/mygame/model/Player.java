@@ -1,58 +1,133 @@
 package com.mygame.model;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.mygame.Main;
 
 public class Player extends GameObject {
-    private static final float MOVE_SPEED = 500f; // Фиксированная скорость движения
-    private static final float PLAYER_RADIUS = 3f; // Радиус хитбокса
-    private static final float MAX_SPEED = 5f; // Максимальная скорость
+    public static final float MAX_SPEED = 500f;
+    public static final float ACCELERATION = 500f;
+    public static final float DECELERATION = 0.8f;
+    public static final float JUMP_FORCE = 20f;
+
+    public enum PlayerState {
+        STANDING,
+        CROUCHING,
+        JUMPING
+    }
+
+    private PlayerState currentState;
+    private Texture standingTexture;
+    private Texture crouchingTexture;
+    private Texture jumpingTexture;
+    private boolean isGrounded;
+    private boolean facingRight = true;
 
     public Player(World world, float x, float y) {
         super(world, x, y);
-        texture = new Texture("player.png");
+
+        standingTexture = new Texture("player.png");
+        crouchingTexture = new Texture("player_crouch.png");
+        jumpingTexture = new Texture("player_jump.png");
+        texture = standingTexture;
+        currentState = PlayerState.STANDING;
+        isGrounded = true;
 
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
         bodyDef.position.set(x, y);
         bodyDef.fixedRotation = true;
-
+        bodyDef.linearDamping = 0.2f; // Add damping for smoother movement
 
         body = world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(20f, 30f); // Половина ширины = 2, половина высоты = 3
-
+        shape.setAsBox(20f, 30f);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
-        fixtureDef.density = 2.5f;
-        fixtureDef.friction = 1f;
-        //fixtureDef.restitution = 0.1f;
+        fixtureDef.density = 0.5f;
+        fixtureDef.friction = 0.1f;
+
+        PolygonShape sensorShape = new PolygonShape();
+        sensorShape.setAsBox(19f, 2f, new Vector2(0, -30f), 0);
+
+        FixtureDef sensorDef = new FixtureDef();
+        sensorDef.shape = sensorShape;
+        sensorDef.isSensor = true;
 
         body.createFixture(fixtureDef);
+        body.createFixture(sensorDef).setUserData("footSensor");
+
         shape.dispose();
+        sensorShape.dispose();
     }
 
-    public void stopMovement() {
-        // Устанавливаем скорость по оси X равной 0
+    public void accelerateRight() {
         Vector2 velocity = body.getLinearVelocity();
-        body.setLinearVelocity(0, velocity.y); // Устанавливаем X-скорость в 0, оставляя Y-скорость
+
+        // Only accelerate if below max speed
+        if (velocity.x < MAX_SPEED) {
+            body.applyForceToCenter(ACCELERATION * body.getMass(), 0, true);
+        }
+
+        facingRight = true;
     }
 
-    public void moveRight() {
-        body.setLinearVelocity(MOVE_SPEED, body.getLinearVelocity().y); // Устанавливаем скорость
+    public void accelerateLeft() {
+        Vector2 velocity = body.getLinearVelocity();
+
+        // Only accelerate if below max speed
+        if (velocity.x > -MAX_SPEED) {
+            body.applyForceToCenter(-ACCELERATION * body.getMass(), 0, true);
+        }
+
+        facingRight = false;
     }
 
-    public void moveLeft() {
-        body.setLinearVelocity(-MOVE_SPEED, body.getLinearVelocity().y); // Устанавливаем скорость
+    public void decelerate() {
+        Vector2 velocity = body.getLinearVelocity();
+
+        // Apply deceleration force in opposite direction of movement
+        if (Math.abs(velocity.x) > 0.1f) {
+            float decelerationForce = -Math.signum(velocity.x) * DECELERATION * body.getMass();
+            body.applyForceToCenter(decelerationForce, 0, true);
+        } else {
+            // If very slow, just stop completely
+            body.setLinearVelocity(0, velocity.y);
+        }
     }
 
-    public void stop() {
-        body.setLinearVelocity(0, body.getLinearVelocity().y); // Остановка по X
+    public boolean isFacingRight() {
+        return facingRight;
+    }
+
+    public void setState(PlayerState state) {
+        this.currentState = state;
+        switch (state) {
+            case STANDING:
+                texture = standingTexture;
+                break;
+            case CROUCHING:
+                texture = crouchingTexture;
+                break;
+            case JUMPING:
+                texture = jumpingTexture;
+                break;
+        }
+    }
+
+    public PlayerState getCurrentState() {
+        return currentState;
+    }
+
+    public boolean isGrounded() {
+        return isGrounded;
+    }
+
+    public void setGrounded(boolean grounded) {
+        this.isGrounded = grounded;
     }
 
     @Override
@@ -60,7 +135,11 @@ public class Player extends GameObject {
         Vector2 position = body.getPosition();
         Vector2 velocity = body.getLinearVelocity();
 
-        // Используем виртуальные границы из Main
+        // Limit maximum speed
+        if (Math.abs(velocity.x) > MAX_SPEED) {
+            body.setLinearVelocity(Math.signum(velocity.x) * MAX_SPEED, velocity.y);
+        }
+
         float minX = 0 + 20;
         float maxX = Main.VIRTUAL_WIDTH - 20;
 
@@ -71,24 +150,20 @@ public class Player extends GameObject {
             body.setTransform(maxX, position.y, 0);
             body.setLinearVelocity(0, velocity.y);
         }
-
-        if (Math.abs(velocity.x) > MAX_SPEED) {
-            body.setLinearVelocity(Math.signum(velocity.x) * MAX_SPEED, velocity.y);
-        }
-    }
-
-
-
-    private boolean isMoving() {
-        return Math.abs(body.getLinearVelocity().x) > 0.1f;
     }
 
     @Override
     public void dispose() {
-        if (texture != null) {
-            texture.dispose();
-            texture = null;
+        if (standingTexture != null) {
+            standingTexture.dispose();
         }
-        body = null; // Освобождаем тело
+        if (crouchingTexture != null) {
+            crouchingTexture.dispose();
+        }
+        if (jumpingTexture != null) {
+            jumpingTexture.dispose();
+        }
+        body = null;
     }
 }
+

@@ -20,24 +20,21 @@ public class Main extends ApplicationAdapter {
     private GameRenderer gameRenderer;
     private Viewport viewport;
 
-    // Размеры виртуального экрана
     public static final float VIRTUAL_WIDTH = 800;
     public static final float VIRTUAL_HEIGHT = 600;
 
     @Override
     public void create() {
         batch = new SpriteBatch();
-        // Создаем FitViewport с виртуальными размерами
         viewport = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
         gameWorld = new GameWorld();
         gameLogic = new GameLogic(gameWorld);
+        inputHandler = new InputHandler(gameLogic);
         gameRenderer = new GameRenderer(batch, gameWorld, viewport);
-        inputHandler = new InputHandler();
     }
 
     @Override
     public void render() {
-        // Очищаем экран с черным цветом
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
@@ -49,11 +46,9 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void resize(int width, int height) {
-        // Очищаем артефакты при ресайзе
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         viewport.update(width, height, true);
 
-        // Центрируем камеру если нужно
         ((OrthographicCamera)viewport.getCamera()).position.set(
             viewport.getWorldWidth()/2,
             viewport.getWorldHeight()/2,
@@ -62,7 +57,6 @@ public class Main extends ApplicationAdapter {
         viewport.getCamera().update();
     }
 
-    // Остальные методы остаются без изменений
     private void input() {
         inputHandler.handleInput(gameWorld.getPlayer());
     }

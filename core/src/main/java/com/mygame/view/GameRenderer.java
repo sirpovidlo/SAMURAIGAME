@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygame.model.GameWorld;
+import com.mygame.model.Player;
 import com.badlogic.gdx.Gdx;
 
 public class GameRenderer {
@@ -28,35 +29,46 @@ public class GameRenderer {
     }
 
     public void render() {
-        // Очистка буфера кадра
+        // Clear frame buffer
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        // Устанавливаем проекционную матрицу из viewport
+        // Set projection matrix from viewport
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
         batch.begin();
 
-        // Рисуем фон на весь виртуальный экран
-        // Рисуем фон (теперь с правильным масштабированием)
+        // Draw background
         batch.draw(backgroundImage,
             0, 0,
             viewport.getWorldWidth(), viewport.getWorldHeight());
-        // Рисуем землю
+
+        // Draw ground
         Vector2 groundPos = gameWorld.getGroundPosition();
         batch.draw(groundTexture,
             groundPos.x - viewport.getWorldWidth()/2, groundPos.y - 1,
             viewport.getWorldWidth(), 2);
 
-        // Рисуем игрока
+        // Draw player with correct orientation based on movement direction
         Vector2 playerPos = gameWorld.getPlayer().getBody().getPosition();
         float width = 40f;
         float height = 60f;
-        batch.draw(gameWorld.getPlayer().getTexture(),
-            playerPos.x - width/2, playerPos.y - height/2,
-            width, height);
+
+        Player player = (Player)gameWorld.getPlayer();
+
+        // Flip the texture based on facing direction
+        if (player.isFacingRight()) {
+            batch.draw(player.getTexture(),
+                playerPos.x - width/2, playerPos.y - height/2,
+                width, height);
+        } else {
+            // Draw flipped when facing left
+            batch.draw(player.getTexture(),
+                playerPos.x + width/2, playerPos.y - height/2,
+                -width, height);
+        }
 
         batch.end();
 
-        // Рисуем хитбоксы (используем матрицу из viewport)
+        // Draw hitboxes
         debugRenderer.render(gameWorld.getWorld(), viewport.getCamera().combined);
     }
 
@@ -66,3 +78,4 @@ public class GameRenderer {
         debugRenderer.dispose();
     }
 }
+
