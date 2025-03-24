@@ -4,51 +4,81 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 
-// Класс игрока, который наследует от GameObject
 public class Player extends GameObject {
+    private static final float MOVE_SPEED = 500f; // Фиксированная скорость движения
+    private static final float PLAYER_RADIUS = 3f; // Радиус хитбокса
+    private static final float MAX_SPEED = 5f; // Максимальная скорость
 
-    // Конструктор для создания игрока
     public Player(World world, float x, float y) {
-        super(world, x, y); // Вызов конструктора базового класса
+        super(world, x, y);
+        texture = new Texture("player.png");
 
-        texture = new Texture("player.png"); // Загружаем текстуру для персонажа
-
-        // Создание физического тела для игрока
         BodyDef bodyDef = new BodyDef();
-        bodyDef.type = BodyDef.BodyType.DynamicBody; // Тело будет динамическим
-        bodyDef.position.set(x, y); // Начальная позиция
+        bodyDef.type = BodyDef.BodyType.DynamicBody;
+        bodyDef.position.set(x, y);
+        bodyDef.fixedRotation = true;
 
-        body = world.createBody(bodyDef); // Создаем тело в мире
 
-        // Создание формы для физического тела (круглая форма для игрока)
-        CircleShape shape = new CircleShape();
-        shape.setRadius(1); // Устанавливаем радиус персонажа
+        body = world.createBody(bodyDef);
 
-        // Настройки физического взаимодействия
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox(20f, 30f); // Половина ширины = 2, половина высоты = 3
+
+
         FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape; // Устанавливаем форму
-        fixtureDef.density = 1f; // Плотность
-        fixtureDef.friction = 0.5f; // Трение
-        fixtureDef.restitution = 0.0f; // Упругость (0 = нет отскока)
+        fixtureDef.shape = shape;
+        fixtureDef.density = 2.5f;
+        fixtureDef.friction = 1f;
+        //fixtureDef.restitution = 0.1f;
 
-        body.createFixture(fixtureDef); // Применяем настройки формы и физики
-        shape.dispose(); // Освобождаем память, выделенную для формы
-
+        body.createFixture(fixtureDef);
+        shape.dispose();
     }
+
+    public void stopMovement() {
+        // Устанавливаем скорость по оси X равной 0
+        Vector2 velocity = body.getLinearVelocity();
+        body.setLinearVelocity(0, velocity.y); // Устанавливаем X-скорость в 0, оставляя Y-скорость
+    }
+
     public void moveRight() {
-        System.out.println("Applying force to the right!"); // Отладочный вывод
-        // Применяем силу к телу игрока вправо
-        body.applyForceToCenter(new Vector2(10, 0), true);
+        body.setLinearVelocity(MOVE_SPEED, body.getLinearVelocity().y); // Устанавливаем скорость
+    }
+
+    public void moveLeft() {
+        body.setLinearVelocity(-MOVE_SPEED, body.getLinearVelocity().y); // Устанавливаем скорость
+    }
+
+    public void stop() {
+        body.setLinearVelocity(0, body.getLinearVelocity().y); // Остановка по X
     }
 
     @Override
     public void update() {
         Vector2 velocity = body.getLinearVelocity();
-        if (velocity.x > 5) { // Ограничение скорости по X
-            body.setLinearVelocity(5, velocity.y);
+
+        // Ограничение максимальной горизонтальной скорости
+        if (Math.abs(velocity.x) > MAX_SPEED) {
+            body.setLinearVelocity(Math.signum(velocity.x) * MAX_SPEED, velocity.y);
         }
-        Vector2 position = body.getPosition();
-        System.out.println("Player position: " + position);
-        System.out.println("Player velocity: " + velocity);
+
+        // Убедимся, что на персонажа действует гравитация
+        if (velocity.y > -10f) { // Это нужно, если он зависает
+            body.applyForceToCenter(0, -5f, true);
+        }
+    }
+
+
+    private boolean isMoving() {
+        return Math.abs(body.getLinearVelocity().x) > 0.1f;
+    }
+
+    @Override
+    public void dispose() {
+        if (texture != null) {
+            texture.dispose();
+            texture = null;
+        }
+        body = null; // Освобождаем тело
     }
 }

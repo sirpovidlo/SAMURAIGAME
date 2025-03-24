@@ -18,12 +18,9 @@ public class Main extends ApplicationAdapter {
     @Override
     public void create() {
         batch = new SpriteBatch();
-
-        // Создание и передача GameWorld в GameLogic и GameRenderer
         gameWorld = new GameWorld();
         gameLogic = new GameLogic(gameWorld);
         gameRenderer = new GameRenderer(batch, gameWorld);
-
         inputHandler = new InputHandler();
     }
 
@@ -35,7 +32,7 @@ public class Main extends ApplicationAdapter {
     }
 
     private void input() {
-        inputHandler.handleInput(gameWorld.getPlayer()); // Передаем GameObject
+        inputHandler.handleInput(gameWorld.getPlayer());
     }
 
     private void logic() {
@@ -48,9 +45,9 @@ public class Main extends ApplicationAdapter {
 
     @Override
     public void dispose() {
-        batch.dispose();
-        gameLogic.dispose();
         gameRenderer.dispose();
-        gameWorld.dispose();  // Освобождение ресурсов мира
+        gameLogic.dispose();
+        gameWorld.dispose();
+        batch.dispose();
     }
 }

@@ -2,48 +2,66 @@ package com.mygame.view;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.physics.box2d.World;
 import com.mygame.model.GameWorld;
+import com.badlogic.gdx.Gdx;
 
-// Класс для рендеринга игры
 public class GameRenderer {
-    private SpriteBatch batch; // Спрайт-менеджер для отрисовки
-    private Texture groundTexture; // Текстура пола
-    private Texture backgroundImage; // Текстура фона
-    private GameWorld gameWorld; // Игровой мир
+    private SpriteBatch batch;
+    private Texture groundTexture;
+    private Texture backgroundImage;
+    private GameWorld gameWorld;
+    private Box2DDebugRenderer debugRenderer; // Отладочный рендерер для хитбоксов
+    private World world;
 
-    // Конструктор для инициализации рендерера
     public GameRenderer(SpriteBatch batch, GameWorld gameWorld) {
         this.batch = batch;
         this.gameWorld = gameWorld;
-        backgroundImage = new Texture("background1.jpg"); // Загружаем текстуру фона
-        groundTexture = new Texture("groud1.png"); // Загружаем текстуру пола
+        this.world = gameWorld.getWorld(); // Получаем физический мир
+
+        backgroundImage = new Texture("background.jpg"); // Фон игры
+        groundTexture = new Texture("groud1.png"); // Текстура земли
+
+        debugRenderer = new Box2DDebugRenderer(); // Создаем отладочный рендерер
     }
 
-    // Метод для отрисовки всех объектов
     public void render() {
-        batch.begin(); // Начало отрисовки
+        batch.begin();
 
-        // Отрисовка фона
-        batch.draw(backgroundImage, 0, 0, 800, 600); // Отображаем фон
+        // Рисуем фон
+        batch.draw(backgroundImage, 0, 0, 800, 600);
 
-        // Получаем позицию пола из GameWorld
-        float groundX = gameWorld.getGroundPosition().x; // Позиция по X (центр)
-        float groundY = gameWorld.getGroundPosition().y;  // Позиция по Y (нижняя часть пола)
-        batch.draw(groundTexture, groundX, groundY, 700, 35); // Отображаем пол
+        // Рисуем землю
+        // Рисуем землю
+        Vector2 groundPos = gameWorld.getGroundPosition();
+        float screenWidth = Gdx.graphics.getWidth();
+        batch.draw(groundTexture,
+            groundPos.x - screenWidth / 2, groundPos.y - 1,
+            screenWidth, 2); // Ширина пола равна ширине экрана
 
-        // Отрисовка персонажа
+
+
+        // Рисуем игрока
+        Vector2 playerPos = gameWorld.getPlayer().getBody().getPosition();
+        float width = 40f;  // Должно совпадать с хитбоксом (2*2)
+        float height = 60f; // Должно совпадать с хитбоксом (3*2)
         batch.draw(gameWorld.getPlayer().getTexture(),
-            gameWorld.getPlayer().getBody().getPosition().x - 20, // Центрируем по X
-            gameWorld.getPlayer().getBody().getPosition().y - 20, 80, 80); // Центрируем по Y
+            playerPos.x - width / 2, playerPos.y - height / 2,
+            width, height);
 
 
-        batch.end(); // Завершаем отрисовку
+        batch.end();
+
+        // Рисуем хитбоксы
+        debugRenderer.render(world, batch.getProjectionMatrix());
     }
 
-    // Освобождение ресурсов
-    public void dispose() {
-        groundTexture.dispose(); // Освобождаем текстуру пола
-        backgroundImage.dispose(); // Освобождаем текстуру фона
 
+    public void dispose() {
+        groundTexture.dispose();
+        backgroundImage.dispose();
+        debugRenderer.dispose(); // Освобождаем ресурсы отладочного рендерера
     }
 }
