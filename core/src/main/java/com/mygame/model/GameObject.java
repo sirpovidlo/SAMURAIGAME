@@ -3,31 +3,31 @@ package com.mygame.model;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.physics.box2d.*;
 
-// Абстрактный класс для всех объектов игры
+// Абстрактный класс, представляющий игровой объект
 public abstract class GameObject {
-    protected Body body; // Физическое тело объекта
-    protected Texture texture; // Текстура объекта
+    protected Body body; // Физическое тело объекта в Box2D
+    protected Texture texture; // Текстура для отображения объекта
 
-    // Конструктор для создания объекта
+    // Конструктор инициализирует объект в мире Box2D
     public GameObject(World world, float x, float y) {
-        // Базовый конструктор
+        // Должен быть реализован в подклассах
     }
 
     public Body getBody() {
-        return body; // Возвращаем физическое тело
+        return body; // Получить физическое тело
     }
 
     public Texture getTexture() {
-        return texture; // Возвращаем текстуру
+        return texture; // Получить текстуру объекта
     }
 
-    // Абстрактный метод для обновления состояния объекта
+    // Абстрактный метод, который должен быть реализован в наследниках (обновление состояния)
     public abstract void update();
 
-    // Освобождение ресурсов, связанных с объектом
+    // Метод освобождения ресурсов
     public void dispose() {
         if (texture != null) {
-            texture.dispose(); // Освобождаем текстуру
+            texture.dispose(); // Освобождаем текстуру из памяти
         }
     }
 }

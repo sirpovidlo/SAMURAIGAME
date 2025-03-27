@@ -1,49 +1,81 @@
 package com.mygame.view;
 
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygame.model.GameWorld;
+import com.mygame.model.Player;
+import com.badlogic.gdx.Gdx;
 
-// Класс для рендеринга игры
 public class GameRenderer {
-    private SpriteBatch batch; // Спрайт-менеджер для отрисовки
-    private Texture groundTexture; // Текстура пола
-    private Texture backgroundImage; // Текстура фона
-    private GameWorld gameWorld; // Игровой мир
+    private SpriteBatch batch;
+    private Texture groundTexture;
+    private Texture backgroundImage;
+    private GameWorld gameWorld;
+    private Box2DDebugRenderer debugRenderer;
+    private Viewport viewport;
 
-    // Конструктор для инициализации рендерера
-    public GameRenderer(SpriteBatch batch, GameWorld gameWorld) {
+    public GameRenderer(SpriteBatch batch, GameWorld gameWorld, Viewport viewport) {
         this.batch = batch;
         this.gameWorld = gameWorld;
-        backgroundImage = new Texture("background1.jpg"); // Загружаем текстуру фона
-        groundTexture = new Texture("groud1.png"); // Загружаем текстуру пола
+        this.viewport = viewport;
+
+        backgroundImage = new Texture("background.jpg");
+        groundTexture = new Texture("groud1.png");
+        debugRenderer = new Box2DDebugRenderer();
     }
 
-    // Метод для отрисовки всех объектов
     public void render() {
-        batch.begin(); // Начало отрисовки
+        // Clear frame buffer
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        // Set projection matrix from viewport
+        batch.setProjectionMatrix(viewport.getCamera().combined);
 
-        // Отрисовка фона
-        batch.draw(backgroundImage, 0, 0, 800, 600); // Отображаем фон
+        batch.begin();
 
-        // Получаем позицию пола из GameWorld
-        float groundX = gameWorld.getGroundPosition().x; // Позиция по X (центр)
-        float groundY = gameWorld.getGroundPosition().y;  // Позиция по Y (нижняя часть пола)
-        batch.draw(groundTexture, groundX, groundY, 700, 35); // Отображаем пол
+        // Draw background
+        batch.draw(backgroundImage,
+            0, 0,
+            viewport.getWorldWidth(), viewport.getWorldHeight());
 
-        // Отрисовка персонажа
-        batch.draw(gameWorld.getPlayer().getTexture(),
-            gameWorld.getPlayer().getBody().getPosition().x - 20, // Центрируем по X
-            gameWorld.getPlayer().getBody().getPosition().y - 20, 80, 80); // Центрируем по Y
+        // Draw ground
+        Vector2 groundPos = gameWorld.getGroundPosition();
+        batch.draw(groundTexture,
+            groundPos.x - viewport.getWorldWidth()/2, groundPos.y - 1,
+            viewport.getWorldWidth(), 2);
 
+        // Draw player with correct orientation based on movement direction
+        Vector2 playerPos = gameWorld.getPlayer().getBody().getPosition();
+        float width = 40f;
+        float height = 60f;
 
-        batch.end(); // Завершаем отрисовку
+        Player player = (Player)gameWorld.getPlayer();
+
+        // Flip the texture based on facing direction
+        if (player.isFacingRight()) {
+            batch.draw(player.getTexture(),
+                playerPos.x - width/2, playerPos.y - height/2,
+                width, height);
+        } else {
+            // Draw flipped when facing left
+            batch.draw(player.getTexture(),
+                playerPos.x + width/2, playerPos.y - height/2,
+                -width, height);
+        }
+
+        batch.end();
+
+        // Draw hitboxes
+        debugRenderer.render(gameWorld.getWorld(), viewport.getCamera().combined);
     }
 
-    // Освобождение ресурсов
     public void dispose() {
-        groundTexture.dispose(); // Освобождаем текстуру пола
-        backgroundImage.dispose(); // Освобождаем текстуру фона
-
+        groundTexture.dispose();
+        backgroundImage.dispose();
+        debugRenderer.dispose();
     }
 }
+
