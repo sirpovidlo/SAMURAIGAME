@@ -2,76 +2,177 @@ package com.mygame.model;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
+import com.mygame.Main;
+import com.mygame.controller.PlayerController;
 
-// Класс игрового мира
+/**
+ * Класс, отвечающий за физический мир и столкновения
+ */
 public class GameWorld {
-    private World world; // Физический мир
-    private Body groundBody; // Тело для пола
-    private GameObject player;  // Игрок
+    private World world;
+    private Body groundBody;
+    private PlayerController playerController;
 
-    // Конструктор для создания игрового мира
+    // Константа масштабирования между физикой (метры) и рендерингом (пиксели)
+    public static final float PPM = 16.0f;
+
+    // Константы для физического движка
+    private static final int VELOCITY_ITERATIONS = 12;
+    private static final int POSITION_ITERATIONS = 6;
+
+    /**
+     * Создание физического мира
+     */
     public GameWorld() {
-        world = new World(new Vector2(0, -1000f), true); // Создаем физический мир с гравитацией
-
-        createBackground(); // Создание фона
-        createGround();     // Создание пола
-
-        player = new Player(world, 0, 100); // Создание игрока в мире
+        // Инициализация физического мира с гравитацией (в метрах, а не в пикселях)
+        world = new World(new Vector2(0, -20f), true);
+        // Настройка параметров мира для улучшения физики
+        createGround();
+        setupContactListener();
     }
 
+    /**
+     * Настройка обработчика столкновений
+     */
+    private void setupContactListener() {
+        world.setContactListener(new ContactListener() {
+            @Override
+            public void beginContact(Contact contact) {
+                Fixture fixtureA = contact.getFixtureA();
+                Fixture fixtureB = contact.getFixtureB();
+
+                if (fixtureA.getUserData() != null && fixtureA.getUserData().equals("footSensor") ||
+                    fixtureB.getUserData() != null && fixtureB.getUserData().equals("footSensor")) {
+                    if (playerController != null) {
+                        playerController.handleLanding();
+                    }
+                }
+            }
+
+            @Override
+            public void endContact(Contact contact) {
+                Fixture fixtureA = contact.getFixtureA();
+                Fixture fixtureB = contact.getFixtureB();
+
+                if (fixtureA.getUserData() != null && fixtureA.getUserData().equals("footSensor") ||
+                    fixtureB.getUserData() != null && fixtureB.getUserData().equals("footSensor")) {
+                    if (playerController != null) {
+                        playerController.setPlayerGrounded(false);
+                    }
+                }
+            }
+
+            @Override
+            public void preSolve(Contact contact, Manifold oldManifold) {}
+
+            @Override
+            public void postSolve(Contact contact, ContactImpulse impulse) {}
+        });
+    }
+
+    /**
+     * Установка контроллера игрока
+     */
+    public void setPlayerController(PlayerController playerController) {
+        this.playerController = playerController;
+    }
+
+    /**
+     * Получение физического мира Box2D
+     */
     public World getWorld() {
-        return world; // Возвращаем физический мир
+        return world;
     }
 
-    public GameObject getPlayer() {
-        return player; // Возвращаем игрока
-    }
-
-    // Метод для обновления мира
+    /**
+     * Обновление физического мира
+     */
     public void update(float deltaTime) {
-        world.step(deltaTime, 6, 2); // Шаг симуляции мира
-        player.update(); // Обновление состояния игрока
+        // Используем фактический deltaTime для синхронизации с отрисовкой
+        // Ограничиваем deltaTime, чтобы избежать туннельного эффекта
+        float clampedDeltaTime = Math.min(deltaTime, 0.016f); // макс. 1/60 сек для более стабильной физики
+
+        // Выполняем симуляцию с улучшенными параметрами
+        world.step(clampedDeltaTime, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
     }
 
-    // Освобождение ресурсов
+    /**
+     * Освобождение ресурсов
+     */
     public void dispose() {
-        world.dispose(); // Освобождаем мир
-        player.dispose(); // Освобождаем ресурсы игрока
+        if (world != null) {
+            world.dispose();
+            world = null;
+        }
     }
 
-    // Создание фона
-    private void createBackground() {
+    /**
+     * Создание физического тела игрока
+     */
+    public Body createPlayerBody(float x, float y) {
         BodyDef bodyDef = new BodyDef();
-        bodyDef.type = BodyDef.BodyType.StaticBody; // Фон — статическое тело
-        bodyDef.position.set(400, 300); // Позиция фона
+        bodyDef.type = BodyDef.BodyType.DynamicBody;
+        bodyDef.position.set(x / PPM, y / PPM); // Переводим координаты из пикселей в метры
+        bodyDef.fixedRotation = true;
+        bodyDef.linearDamping = 0.1f;
 
-        Body backgroundBody = world.createBody(bodyDef); // Создаем тело для фона
-        PolygonShape shape = new PolygonShape(); // Прямоугольная форма фона
-        shape.setAsBox(400, 300); // Устанавливаем размеры фона
+        // Установка дополнительных параметров для предотвращения проникновения
+        bodyDef.bullet = true; // Включаем режим пули для предотвращения проникновения через стены
+
+        Body body = world.createBody(bodyDef);
+
+        PolygonShape shape = new PolygonShape();
+
+        shape.setAsBox(30f / PPM, 45f / PPM);
 
         FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape; // Устанавливаем форму
-        backgroundBody.createFixture(fixtureDef); // Применяем физику к фону
-        shape.dispose(); // Освобождаем форму
+        fixtureDef.shape = shape;
+        fixtureDef.density = 0.5f;
+        fixtureDef.friction = 0.2f;
+        fixtureDef.restitution = 0.0f; // Нет отскока
+
+        PolygonShape sensorShape = new PolygonShape();
+        sensorShape.setAsBox(28f / PPM, 4f / PPM, new Vector2(0, -45f / PPM), 0); // Подстроен сенсор ног
+
+        FixtureDef sensorDef = new FixtureDef();
+        sensorDef.shape = sensorShape;
+        sensorDef.isSensor = true;
+
+        body.createFixture(fixtureDef);
+        body.createFixture(sensorDef).setUserData("footSensor");
+
+        shape.dispose();
+        sensorShape.dispose();
+
+        return body;
     }
 
-    // Создание пола
+    /**
+     * Создание земли
+     */
     private void createGround() {
         BodyDef bodyDef = new BodyDef();
-        bodyDef.type = BodyDef.BodyType.StaticBody; // Пол — статическое тело
-        bodyDef.position.set(0, 0); // Позиция пола
+        bodyDef.type = BodyDef.BodyType.StaticBody;
 
-        groundBody = world.createBody(bodyDef); // Создаем тело для пола
-        PolygonShape shape = new PolygonShape(); // Прямоугольная форма пола
-        shape.setAsBox(400, 50); // Устанавливаем размеры пола
+        // Размещаем землю в нижней части экрана
+        bodyDef.position.set((Main.VIRTUAL_WIDTH - 150 ) / PPM / 2, 33 / PPM / 2);
+
+        groundBody = world.createBody(bodyDef);
+
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox((Main.VIRTUAL_WIDTH - 200) / PPM / 2, 33 / PPM / 2);
 
         FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape; // Устанавливаем форму
-        groundBody.createFixture(fixtureDef); // Применяем физику к полу
-        shape.dispose(); // Освобождаем форму
+        fixtureDef.shape = shape;
+        fixtureDef.friction = 0.7f;
+        groundBody.createFixture(fixtureDef);
+        shape.dispose();
     }
 
+    /**
+     * Получение позиции земли
+     */
     public Vector2 getGroundPosition() {
-        return groundBody.getPosition(); // Возвращаем позицию пола
+        return groundBody.getPosition();
     }
 }

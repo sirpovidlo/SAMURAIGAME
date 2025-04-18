@@ -1,54 +1,171 @@
 package com.mygame.model;
 
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
+import com.mygame.Main;
+import com.mygame.controller.PlayerController;
 
-// Класс игрока, который наследует от GameObject
-public class Player extends GameObject {
+/**
+ * Класс игрока
+ */
+public class Player implements GameObject {
+    // Константы управления (масштабированы для физического мира)
+    public static final float MAX_SPEED = 15.0f;
+    public static final float ACCELERATION = 25.0f;
+    public static final float DECELERATION = 10.8f;
+    public static final float JUMP_FORCE = 4.0f;
 
-    // Конструктор для создания игрока
-    public Player(World world, float x, float y) {
-        super(world, x, y); // Вызов конструктора базового класса
-
-        texture = new Texture("player.png"); // Загружаем текстуру для персонажа
-
-        // Создание физического тела для игрока
-        BodyDef bodyDef = new BodyDef();
-        bodyDef.type = BodyDef.BodyType.DynamicBody; // Тело будет динамическим
-        bodyDef.position.set(x, y); // Начальная позиция
-
-        body = world.createBody(bodyDef); // Создаем тело в мире
-
-        // Создание формы для физического тела (круглая форма для игрока)
-        CircleShape shape = new CircleShape();
-        shape.setRadius(1); // Устанавливаем радиус персонажа
-
-        // Настройки физического взаимодействия
-        FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape; // Устанавливаем форму
-        fixtureDef.density = 1f; // Плотность
-        fixtureDef.friction = 0.5f; // Трение
-        fixtureDef.restitution = 0.0f; // Упругость (0 = нет отскока)
-
-        body.createFixture(fixtureDef); // Применяем настройки формы и физики
-        shape.dispose(); // Освобождаем память, выделенную для формы
-
-    }
-    public void moveRight() {
-        System.out.println("Applying force to the right!"); // Отладочный вывод
-        // Применяем силу к телу игрока вправо
-        body.applyForceToCenter(new Vector2(10, 0), true);
+    public enum PlayerState {
+        STANDING,
+        CROUCHING,
+        JUMPING
     }
 
+    private PlayerState currentState;
+    private Body body;
+    private boolean isGrounded;
+    private boolean facingRight = true;
+    private PlayerController controller;
+
+    /**
+     * Конструктор игрока, принимающий готовое физическое тело
+     */
+    public Player(Body body) {
+        this.body = body;
+
+        currentState = PlayerState.STANDING;
+        isGrounded = true;
+    }
+
+    /**
+     * Установка контроллера игрока
+     */
+    public void setController(PlayerController controller) {
+        this.controller = controller;
+    }
+
+    /**
+     * Получение физического тела игрока
+     */
+    public Body getBody() {
+        return body;
+    }
+
+    /**
+     * Ускорение вправо
+     */
+    public void accelerateRight() {
+        Vector2 velocity = body.getLinearVelocity();
+
+        // Only accelerate if below max speed
+        if (velocity.x < MAX_SPEED) {
+            body.applyForceToCenter(ACCELERATION * body.getMass(), 0, true);
+        }
+
+        facingRight = true;
+    }
+
+    /**
+     * Ускорение влево
+     */
+    public void accelerateLeft() {
+        Vector2 velocity = body.getLinearVelocity();
+
+        // Only accelerate if below max speed
+        if (velocity.x > -MAX_SPEED) {
+            body.applyForceToCenter(-ACCELERATION * body.getMass(), 0, true);
+        }
+
+        facingRight = false;
+    }
+
+    /**
+     * Замедление
+     */
+    public void decelerate() {
+        Vector2 velocity = body.getLinearVelocity();
+
+        // Apply deceleration force in opposite direction of movement
+        if (Math.abs(velocity.x) > 0.1f) {
+            float decelerationForce = -Math.signum(velocity.x) * DECELERATION * body.getMass();
+            body.applyForceToCenter(decelerationForce, 0, true);
+        } else {
+            // If very slow, just stop completely
+            body.setLinearVelocity(0, velocity.y);
+        }
+    }
+
+    /**
+     * Проверка направления движения
+     */
+    public boolean isFacingRight() {
+        return facingRight;
+    }
+
+    /**
+     * Получение текущего состояния игрока
+     */
+    public PlayerState getCurrentState() {
+        return currentState;
+    }
+
+    /**
+     * Установка состояния игрока
+     */
+    public void setState(PlayerState state) {
+        this.currentState = state;
+    }
+
+    /**
+     * Проверка, находится ли игрок на земле
+     */
+    public boolean isGrounded() {
+        return isGrounded;
+    }
+
+    /**
+     * Установка состояния "на земле"
+     */
+    public void setGrounded(boolean grounded) {
+        this.isGrounded = grounded;
+    }
+
+    /**
+     * Обновление состояния игрока
+     */
     @Override
     public void update() {
-        Vector2 velocity = body.getLinearVelocity();
-        if (velocity.x > 5) { // Ограничение скорости по X
-            body.setLinearVelocity(5, velocity.y);
+        // Применение управления к игроку
+        if (controller != null) {
+            controller.applyControl(this);
         }
+
         Vector2 position = body.getPosition();
-        System.out.println("Player position: " + position);
-        System.out.println("Player velocity: " + velocity);
+        Vector2 velocity = body.getLinearVelocity();
+
+        // Limit maximum speed
+        if (Math.abs(velocity.x) > MAX_SPEED) {
+            body.setLinearVelocity(Math.signum(velocity.x) * MAX_SPEED, velocity.y);
+        }
+
+        // Ограничение движения в пределах экрана
+        float minX = (0 + 60) / GameWorld.PPM; // (левая граница)
+        float maxX = (Main.VIRTUAL_WIDTH - 220) / GameWorld.PPM; // (правая граница)
+
+        if (position.x < minX) {
+            body.setTransform(minX, position.y, 0);
+            body.setLinearVelocity(0, velocity.y);
+        } else if (position.x > maxX) {
+            body.setTransform(maxX, position.y, 0);
+            body.setLinearVelocity(0, velocity.y);
+        }
+    }
+
+    /**
+     * Освобождение ресурсов
+     */
+    @Override
+    public void dispose() {
+        body = null;
     }
 }

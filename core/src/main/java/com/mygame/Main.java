@@ -2,55 +2,97 @@ package com.mygame;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.mygame.model.GameWorld;
-import com.mygame.view.GameRenderer;
-import com.mygame.viewmodel.GameLogic;
-import com.mygame.viewmodel.InputHandler;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
+import com.mygame.controller.PlayerController;
+import com.mygame.model.GameModel;
+import com.mygame.view.TextureManager;
+import com.mygame.view.ViewRenderer;
+import com.mygame.viewmodel.ViewModelManager;
 
+/**
+ * Основной класс игры
+ */
 public class Main extends ApplicationAdapter {
     private SpriteBatch batch;
-    private GameWorld gameWorld;
-    private GameLogic gameLogic;
-    private InputHandler inputHandler;
-    private GameRenderer gameRenderer;
+    private GameModel gameModel;
+    private PlayerController playerController;
+    private ViewModelManager viewModelManager;
+    private ViewRenderer viewRenderer;
+    private Viewport viewport;
+
+    public static final float VIRTUAL_WIDTH = 800;
+    public static final float VIRTUAL_HEIGHT = 600;
 
     @Override
     public void create() {
+        // Инициализация основных компонентов
         batch = new SpriteBatch();
-
-        // Создание и передача GameWorld в GameLogic и GameRenderer
-        gameWorld = new GameWorld();
-        gameLogic = new GameLogic(gameWorld);
-        gameRenderer = new GameRenderer(batch, gameWorld);
-
-        inputHandler = new InputHandler();
+        viewport = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        
+        // 1. Создание модели (Model в MVVM)
+        gameModel = new GameModel();
+        
+        // 2. Создание контроллера для игрока (не входит в MVVM, является частью Controller в MVC)
+        playerController = new PlayerController(gameModel.getPlayer());
+        gameModel.getGameWorld().setPlayerController(playerController);
+        
+        // 3. Инициализируем TextureManager (часть View)
+        // TextureManager инициализируется автоматически при первом обращении
+        TextureManager.getInstance();
+        
+        // 4. Создание менеджера моделей представления (ViewModel в MVVM)
+        viewModelManager = new ViewModelManager(gameModel, viewport);
+        
+        // 5. Создание рендерера (View в MVVM)
+        viewRenderer = new ViewRenderer(batch, viewModelManager, viewport);
     }
 
     @Override
     public void render() {
-        input();
-        logic();
-        draw();
+        // Очистка экрана
+        Gdx.gl.glClearColor(0, 0, 0, 1); // Черный цвет
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // Применение вьюпорта
+        viewport.apply();
+        
+        // 1. Обновление модели (бизнес-логика)
+        gameModel.update(Gdx.graphics.getDeltaTime());
+        
+        // 2. Обновление моделей представления (подготовка данных для отображения)
+        viewModelManager.update();
+        
+        // 3. Отрисовка (визуальное представление)
+        viewRenderer.render();
     }
 
-    private void input() {
-        inputHandler.handleInput(gameWorld.getPlayer()); // Передаем GameObject
-    }
+    @Override
+    public void resize(int width, int height) {
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        viewport.update(width, height, true);
 
-    private void logic() {
-        gameLogic.update(Gdx.graphics.getDeltaTime());
-    }
-
-    private void draw() {
-        gameRenderer.render();
+        ((OrthographicCamera)viewport.getCamera()).position.set(
+            viewport.getWorldWidth()/2,
+            viewport.getWorldHeight()/2,
+            0
+        );
+        viewport.getCamera().update();
     }
 
     @Override
     public void dispose() {
+        // Освобождение ресурсов в порядке, обратном их созданию
+        viewRenderer.dispose();
+        viewModelManager.dispose();
+        
+        // Освобождение текстур
+        TextureManager.getInstance().dispose();
+        
+        gameModel.dispose();
         batch.dispose();
-        gameLogic.dispose();
-        gameRenderer.dispose();
-        gameWorld.dispose();  // Освобождение ресурсов мира
     }
 }
