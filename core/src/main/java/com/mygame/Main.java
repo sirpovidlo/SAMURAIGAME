@@ -2,6 +2,7 @@ package com.mygame;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -9,6 +10,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygame.controller.PlayerController;
 import com.mygame.model.GameModel;
+import com.mygame.model.GameWorld;
 import com.mygame.view.TextureManager;
 import com.mygame.view.ViewRenderer;
 import com.mygame.viewmodel.ViewModelManager;
@@ -24,29 +26,30 @@ public class Main extends ApplicationAdapter {
     private ViewRenderer viewRenderer;
     private Viewport viewport;
 
-    public static final float VIRTUAL_WIDTH = 800;
-    public static final float VIRTUAL_HEIGHT = 600;
+    public static final float VIRTUAL_WIDTH = 640 / GameWorld.PPM;
+    public static final float VIRTUAL_HEIGHT = 480 / GameWorld.PPM;
 
     @Override
     public void create() {
         // Инициализация основных компонентов
         batch = new SpriteBatch();
         viewport = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
-        
+
+
         // 1. Создание модели (Model в MVVM)
         gameModel = new GameModel();
-        
+
         // 2. Создание контроллера для игрока (не входит в MVVM, является частью Controller в MVC)
         playerController = new PlayerController(gameModel.getPlayer());
         gameModel.getGameWorld().setPlayerController(playerController);
-        
+
         // 3. Инициализируем TextureManager (часть View)
         // TextureManager инициализируется автоматически при первом обращении
         TextureManager.getInstance();
-        
+
         // 4. Создание менеджера моделей представления (ViewModel в MVVM)
         viewModelManager = new ViewModelManager(gameModel, viewport);
-        
+
         // 5. Создание рендерера (View в MVVM)
         viewRenderer = new ViewRenderer(batch, viewModelManager, viewport);
     }
@@ -59,13 +62,13 @@ public class Main extends ApplicationAdapter {
 
         // Применение вьюпорта
         viewport.apply();
-        
+
         // 1. Обновление модели (бизнес-логика)
         gameModel.update(Gdx.graphics.getDeltaTime());
-        
+
         // 2. Обновление моделей представления (подготовка данных для отображения)
         viewModelManager.update();
-        
+
         // 3. Отрисовка (визуальное представление)
         viewRenderer.render();
     }
@@ -88,10 +91,10 @@ public class Main extends ApplicationAdapter {
         // Освобождение ресурсов в порядке, обратном их созданию
         viewRenderer.dispose();
         viewModelManager.dispose();
-        
+
         // Освобождение текстур
         TextureManager.getInstance().dispose();
-        
+
         gameModel.dispose();
         batch.dispose();
     }

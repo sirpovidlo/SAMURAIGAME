@@ -3,6 +3,8 @@ package com.mygame.viewmodel;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygame.model.GameWorld;
 import com.mygame.model.Player;
 import com.mygame.view.TextureManager;
@@ -16,17 +18,14 @@ public class PlayerViewModel implements ViewModel {
     private Player player;
 
     // Размеры для отрисовки
-    private float width = 120f;
-    private float height = 180f;
+    private float width = 3.75f;
+    private float height = 5.645f;
 
     // Данные для отрисовки
     private float x;
     private float y;
     private boolean facingRight;
 
-    // Предыдущие координаты для интерполяции
-    private float prevX;
-    private float prevY;
 
     // Константа интерполяции (0-1)
     // 1 = точное следование физике, 0 = плавное движение
@@ -41,28 +40,26 @@ public class PlayerViewModel implements ViewModel {
      */
     public PlayerViewModel(Player player) {
         this.player = player;
-
-        // Вычисляем начальные данные для отрисовки
-        Vector2 initialPos = player.getBody().getPosition();
-        x = prevX = initialPos.x * GameWorld.PPM;
-        y = prevY = initialPos.y * GameWorld.PPM;
-
-        update();
     }
 
-    /**
-     * Обновление данных представления
-     */
     @Override
-    public void update() {
+    public void update(Viewport viewport) {
         // Получаем данные из модели
         Vector2 physicsPos = player.getBody().getPosition();
         facingRight = player.isFacingRight();
         currentState = player.getCurrentState();
 
-        // Прямой перенос координат из физики в рендеринг с учетом масштаба
-        x = physicsPos.x * GameWorld.PPM;
-        y = physicsPos.y * GameWorld.PPM;
+
+
+        transformCoordinates(physicsPos, viewport);
+    }
+    private void transformCoordinates(Vector2 pos, Viewport viewport)
+    {
+        //Vector3 transformedCoordinate = viewport.getCamera().project(new Vector3(pos.x, pos.y, 0));
+        //x = transformedCoordinate.x;
+        //y = transformedCoordinate.y;
+        x = pos.x;
+        y = pos.y;
     }
 
     /**

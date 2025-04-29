@@ -29,14 +29,14 @@ public class BackgroundViewModel implements ViewModel {
         this.viewport = viewport;
 
         // Вычисляем данные для отрисовки
-        update();
+        update(viewport);
     }
 
     /**
      * Обновление данных представления
      */
     @Override
-    public void update() {
+    public void update(Viewport viewport) {
         // Получаем размеры вьюпорта для определения размеров фона
         width = viewport.getWorldWidth();
         height = viewport.getWorldHeight();

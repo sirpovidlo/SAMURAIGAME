@@ -69,7 +69,7 @@ public class ViewModelManager {
      */
     public void update() {
         for (ViewModel viewModel : viewModels) {
-            viewModel.update();
+            viewModel.update(viewport);
         }
     }
 

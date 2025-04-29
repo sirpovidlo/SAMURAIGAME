@@ -14,13 +14,13 @@ import com.mygame.view.TextureManager;
 public class GroundViewModel implements ViewModel {
     private GameModel gameModel;
     private Viewport viewport;
-    
+
     // Данные для отрисовки
     private float x;
     private float y;
     private float width;
     private float height = 2; // Высота земли
-    
+
     // Ссылка на текстуру из TextureManager
     private String textureId = TextureManager.GROUND;
 
@@ -32,19 +32,19 @@ public class GroundViewModel implements ViewModel {
     public GroundViewModel(GameModel gameModel, Viewport viewport) {
         this.gameModel = gameModel;
         this.viewport = viewport;
-        
+
         // Вычисляем начальные данные для отрисовки
-        update();
+        update(viewport);
     }
 
     /**
      * Обновление данных представления
      */
     @Override
-    public void update() {
+    public void update(Viewport viewport) {
         // Получаем позицию земли из модели
         Vector2 groundPos = gameModel.getGroundPosition();
-        
+
         // Преобразуем данные модели в формат для отображения
         width = viewport.getWorldWidth();
         x = groundPos.x - width/2;
@@ -71,4 +71,4 @@ public class GroundViewModel implements ViewModel {
     public void dispose() {
         // Ресурсы освобождаются в TextureManager
     }
-} 
+}

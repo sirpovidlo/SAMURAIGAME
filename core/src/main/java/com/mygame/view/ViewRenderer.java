@@ -32,17 +32,18 @@ public class ViewRenderer {
     public void render() {
         // Отрисовка игровых объектов через SpriteBatch
         batch.begin();
-        
+        batch.setProjectionMatrix(viewport.getCamera().combined);
+
         // Отрисовка всех моделей представления
         for (ViewModel viewModel : viewModelManager.getViewModels()) {
             viewModel.render(batch);
         }
-        
+
         batch.end();
-        
+
         // Отрисовка отладочной информации о физических телах (хитбоксах) поверх спрайтов
         viewModelManager.getDebugRenderer().render(
-            viewModelManager.getPhysicsWorld(), 
+            viewModelManager.getPhysicsWorld(),
             viewport.getCamera().combined
         );
     }
@@ -54,4 +55,4 @@ public class ViewRenderer {
         // ViewRenderer не владеет ресурсами, их освобождает ViewModelManager
         batch.dispose();
     }
-} 
+}
