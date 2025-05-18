@@ -45,22 +45,16 @@ public class PlayerViewModel implements ViewModel {
     @Override
     public void update(Viewport viewport) {
         // Получаем данные из модели
-        Vector2 physicsPos = player.getBody().getPosition();
+        x = player.getPositionX();
+        y = player.getPositionY();
         facingRight = player.isFacingRight();
         currentState = player.getCurrentState();
 
 
 
-        transformCoordinates(physicsPos, viewport);
+
     }
-    private void transformCoordinates(Vector2 pos, Viewport viewport)
-    {
-        //Vector3 transformedCoordinate = viewport.getCamera().project(new Vector3(pos.x, pos.y, 0));
-        //x = transformedCoordinate.x;
-        //y = transformedCoordinate.y;
-        x = pos.x;
-        y = pos.y;
-    }
+
 
     /**
      * Получение идентификатора текстуры в зависимости от состояния игрока
@@ -86,18 +80,18 @@ public class PlayerViewModel implements ViewModel {
         Texture texture = TextureManager.getInstance().getTexture(getTextureId());
         if (texture != null) {
             // Добавляем небольшое смещение вверх, чтобы персонаж не проваливался в землю
-            float renderY = y - height/2 + 10;
+
 
             // Отрисовка игрока с учетом направления движения
             if (facingRight) {
                 // Игрок смотрит вправо
                 batch.draw(texture,
-                    x - width/2, renderY,  // Позиция
+                    x - width/2, y - height/2,  // Позиция
                     width, height);        // Размеры
             } else {
                 // Игрок смотрит влево (отзеркаливаем текстуру)
                 batch.draw(texture,
-                    x + width/2, renderY,  // Позиция со смещением для зеркалирования
+                    x + width/2, y - height/2,  // Позиция со смещением для зеркалирования
                     -width, height);       // Отрицательная ширина для зеркалирования
             }
         }

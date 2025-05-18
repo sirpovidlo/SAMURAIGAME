@@ -1,6 +1,7 @@
 package com.mygame;
 
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.GL20;
@@ -26,8 +27,9 @@ public class Main extends ApplicationAdapter {
     private ViewRenderer viewRenderer;
     private Viewport viewport;
 
-    public static final float VIRTUAL_WIDTH = 640 / GameWorld.PPM;
-    public static final float VIRTUAL_HEIGHT = 480 / GameWorld.PPM;
+
+    public static final float VIRTUAL_WIDTH = 40;
+    public static final float VIRTUAL_HEIGHT = 30;
 
     @Override
     public void create() {

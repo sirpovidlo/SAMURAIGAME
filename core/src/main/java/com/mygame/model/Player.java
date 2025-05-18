@@ -51,6 +51,15 @@ public class Player implements GameObject {
         return body;
     }
 
+    public float getPositionX()
+    {
+        return body.getPosition().x;
+    }
+    public float getPositionY()
+    {
+        return body.getPosition().y;
+    }
+
     /**
      * Ускорение вправо
      */
@@ -149,8 +158,8 @@ public class Player implements GameObject {
         }
 
         // Ограничение движения в пределах экрана
-        float minX = (0 + 60) / GameWorld.PPM; // (левая граница)
-        float maxX = (Main.VIRTUAL_WIDTH - 220) / GameWorld.PPM; // (правая граница)
+        float minX = 1; // (левая граница)
+        float maxX = (Main.VIRTUAL_WIDTH) - 1; // (правая граница)
 
         if (position.x < minX) {
             body.setTransform(minX, position.y, 0);

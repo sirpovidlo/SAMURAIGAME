@@ -22,7 +22,7 @@ public class GameModel {
      */
     public void initialize() {
         // Позиция задается в пикселях, преобразование в метры происходит в createPlayerBody
-        player = new Player(gameWorld.createPlayerBody(60, 150));
+        player = new Player(gameWorld.createPlayerBody(1, 5));
     }
 
     public GameWorld getGameWorld() {

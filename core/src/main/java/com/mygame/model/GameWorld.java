@@ -112,36 +112,46 @@ public class GameWorld {
     public Body createPlayerBody(float x, float y) {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
-        bodyDef.position.set(x / PPM, y / PPM); // Переводим координаты из пикселей в метры
+
+        // Все сразу в метрах
+        bodyDef.position.set(x, y);
         bodyDef.fixedRotation = true;
         bodyDef.linearDamping = 0.1f;
-
-        // Установка дополнительных параметров для предотвращения проникновения
-        bodyDef.bullet = true; // Включаем режим пули для предотвращения проникновения через стены
+        bodyDef.bullet = true; // предотвращение сквозных пролётов
 
         Body body = world.createBody(bodyDef);
 
-        PolygonShape shape = new PolygonShape();
+        // Размеры игрока в метрах
+        float widthMetr = 5;
+        float heightMetr = 5;
 
-        shape.setAsBox(30f / PPM, 45f / PPM);
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox(widthMetr / 2, heightMetr / 2);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
         fixtureDef.density = 0.5f;
         fixtureDef.friction = 0.2f;
-        fixtureDef.restitution = 0.0f; // Нет отскока
+        fixtureDef.restitution = 0.0f;
 
+        // Создание основного тела
+        body.createFixture(fixtureDef);
+        shape.dispose();
+
+        // Сенсор ног (для проверки касания земли)
         PolygonShape sensorShape = new PolygonShape();
-        sensorShape.setAsBox(28f / PPM, 4f / PPM, new Vector2(0, -45f / PPM), 0); // Подстроен сенсор ног
+        float sensorWidth = 3.5f;   // чуть уже тела
+        float sensorHeight = 0.5f;   // тонкий сенсор
+        float sensorOffsetY = -heightMetr / 2; // смещён вниз от центра тела
+
+        sensorShape.setAsBox(sensorWidth / 2, sensorHeight / 2,
+            new Vector2(0, sensorOffsetY), 0);
 
         FixtureDef sensorDef = new FixtureDef();
         sensorDef.shape = sensorShape;
         sensorDef.isSensor = true;
 
-        body.createFixture(fixtureDef);
         body.createFixture(sensorDef).setUserData("footSensor");
-
-        shape.dispose();
         sensorShape.dispose();
 
         return body;
@@ -155,12 +165,12 @@ public class GameWorld {
         bodyDef.type = BodyDef.BodyType.StaticBody;
 
         // Размещаем землю в нижней части экрана
-        bodyDef.position.set((Main.VIRTUAL_WIDTH - 150 ) / PPM / 2, 33 / PPM / 2);
+        bodyDef.position.set((Main.VIRTUAL_WIDTH) / 2, 1);
 
         groundBody = world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox((Main.VIRTUAL_WIDTH - 200) / PPM / 2, 33 / PPM / 2);
+        shape.setAsBox((Main.VIRTUAL_WIDTH ) / 2, 1);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
