@@ -15,6 +15,10 @@ public class Player implements GameObject {
     public static final float DECELERATION = 10.8f;
     public static final float JUMP_FORCE = 4.0f;
 
+    public enum Direction {
+        LEFT, RIGHT, NONE
+    }
+
     public enum PlayerState {
         STANDING,
         CROUCHING,
@@ -26,6 +30,7 @@ public class Player implements GameObject {
     private boolean isGrounded;
     private boolean facingRight = true;
     private PlayerController controller;
+    private Player player;
 
     /**
      * Конструктор игрока, принимающий готовое физическое тело
@@ -35,6 +40,10 @@ public class Player implements GameObject {
 
         currentState = PlayerState.STANDING;
         isGrounded = true;
+    }
+
+    private Vector2 getVelocity() {
+        return body.getLinearVelocity();
     }
 
     /**
@@ -137,6 +146,85 @@ public class Player implements GameObject {
      */
     public void setGrounded(boolean grounded) {
         this.isGrounded = grounded;
+    }
+
+    /**
+     * Обработка приземления игрока
+     */
+    public void handleLanding() {
+        setGrounded(true);
+        if (getCurrentState() == PlayerState.JUMPING) {
+            setState(PlayerState.CROUCHING);
+        }
+    }
+
+    /**
+     * Прыжок игрока
+     */
+    public void jump() {
+        if (isGrounded) {
+            body.setLinearVelocity(
+                body.getLinearVelocity().x,
+                JUMP_FORCE * 6
+            );
+            setState(PlayerState.JUMPING);
+            setGrounded(false);
+        }
+    }
+
+    /**
+     * Перемещение игрока в указанном направлении
+     */
+    public void move(Direction direction) {
+        switch (direction) {
+            case RIGHT:
+                // Only accelerate if below max speed
+                if (getVelocity().x < MAX_SPEED) {
+                    body.applyForceToCenter(ACCELERATION * body.getMass(), 0, true);
+                }
+
+                facingRight = true;
+                break;
+            case LEFT:
+
+                // Only accelerate if below max speed
+                if (getVelocity().x > -MAX_SPEED) {
+                    body.applyForceToCenter(-ACCELERATION * body.getMass(), 0, true);
+                }
+
+                facingRight = false;
+                break;
+            case NONE:
+                // Apply deceleration force in opposite direction of movement
+                if (Math.abs(getVelocity().x) > 0.1f) {
+                    float decelerationForce = -Math.signum(getVelocity().x) * DECELERATION * body.getMass();
+                    body.applyForceToCenter(decelerationForce, 0, true);
+                } else {
+                    // If very slow, just stop completely
+                    body.setLinearVelocity(0, getVelocity().y);
+                }
+                break;
+        }
+
+        // Обновление состояния в зависимости от перемещения
+        updateState();
+    }
+
+    /**
+     * Обновление состояния игрока на основе текущего движения
+     */
+    private void updateState() {
+        Vector2 velocity = body.getLinearVelocity();
+
+        if (isGrounded) {
+            if (Math.abs(velocity.x) > 0.1f) {
+                setState(PlayerState.STANDING);
+            } else {
+                setState(PlayerState.STANDING);
+            }
+        } else {
+            setState(PlayerState.JUMPING);
+        }
     }
 
     /**

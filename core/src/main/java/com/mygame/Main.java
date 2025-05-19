@@ -43,7 +43,7 @@ public class Main extends ApplicationAdapter {
 
         // 2. Создание контроллера для игрока (не входит в MVVM, является частью Controller в MVC)
         playerController = new PlayerController(gameModel.getPlayer());
-        gameModel.getGameWorld().setPlayerController(playerController);
+        gameModel.getGameWorld().setPlayer(gameModel.getPlayer());
 
         // 3. Инициализируем TextureManager (часть View)
         // TextureManager инициализируется автоматически при первом обращении

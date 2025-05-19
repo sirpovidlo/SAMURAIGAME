@@ -11,7 +11,7 @@ import com.mygame.controller.PlayerController;
 public class GameWorld {
     private World world;
     private Body groundBody;
-    private PlayerController playerController;
+    private Player player;
 
     // Константа масштабирования между физикой (метры) и рендерингом (пиксели)
     public static final float PPM = 16.0f;
@@ -32,6 +32,13 @@ public class GameWorld {
     }
 
     /**
+     * Установка игрока для мира
+     */
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    /**
      * Настройка обработчика столкновений
      */
     private void setupContactListener() {
@@ -43,8 +50,8 @@ public class GameWorld {
 
                 if (fixtureA.getUserData() != null && fixtureA.getUserData().equals("footSensor") ||
                     fixtureB.getUserData() != null && fixtureB.getUserData().equals("footSensor")) {
-                    if (playerController != null) {
-                        playerController.handleLanding();
+                    if (player != null) {
+                        player.handleLanding();
                     }
                 }
             }
@@ -56,8 +63,8 @@ public class GameWorld {
 
                 if (fixtureA.getUserData() != null && fixtureA.getUserData().equals("footSensor") ||
                     fixtureB.getUserData() != null && fixtureB.getUserData().equals("footSensor")) {
-                    if (playerController != null) {
-                        playerController.setPlayerGrounded(false);
+                    if (player != null) {
+                        player.setGrounded(false);
                     }
                 }
             }
@@ -68,13 +75,6 @@ public class GameWorld {
             @Override
             public void postSolve(Contact contact, ContactImpulse impulse) {}
         });
-    }
-
-    /**
-     * Установка контроллера игрока
-     */
-    public void setPlayerController(PlayerController playerController) {
-        this.playerController = playerController;
     }
 
     /**
@@ -121,9 +121,9 @@ public class GameWorld {
 
         Body body = world.createBody(bodyDef);
 
-        // Размеры игрока в метрах
-        float widthMetr = 5;
-        float heightMetr = 5;
+        // Размеры игрока
+        float widthMetr = 3.75f;
+        float heightMetr = 5.645f;
 
         PolygonShape shape = new PolygonShape();
         shape.setAsBox(widthMetr / 2, heightMetr / 2);

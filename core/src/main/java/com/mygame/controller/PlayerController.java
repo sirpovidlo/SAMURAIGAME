@@ -2,7 +2,6 @@ package com.mygame.controller;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.math.Vector2;
 import com.mygame.model.Player;
 
 /**
@@ -11,16 +10,14 @@ import com.mygame.model.Player;
 public class PlayerController {
     private boolean isJumpPressed;
     private boolean wasJumpPressed;
-    private Player player;
 
     /**
      * Конструктор контроллера с привязкой к игроку
      */
     public PlayerController(Player player) {
-        this.player = player;
         this.isJumpPressed = false;
         this.wasJumpPressed = false;
-        
+
         // Устанавливаем контроллер для игрока
         player.setController(this);
     }
@@ -36,61 +33,20 @@ public class PlayerController {
 
         // Обработка прыжка
         isJumpPressed = jumping;
-        
+
         // Обработка движения
         if (movingRight) {
-            player.accelerateRight();
+            player.move(Player.Direction.RIGHT);
         } else if (movingLeft) {
-            player.accelerateLeft();
+            player.move(Player.Direction.LEFT);
         } else {
-            player.decelerate();
+            player.move(Player.Direction.NONE);
         }
-        
-        // Обновление состояния прыжка
-        updatePlayerState(player);
-    }
 
-    /**
-     * Обновление состояния игрока
-     */
-    private void updatePlayerState(Player player) {
+        // Обработка прыжка
         if (isJumpPressed && !wasJumpPressed && player.isGrounded()) {
-            player.getBody().setLinearVelocity(
-                player.getBody().getLinearVelocity().x,
-                Player.JUMP_FORCE * 6
-            );
-            player.setState(Player.PlayerState.JUMPING);
-            player.setGrounded(false);
+            player.jump();
         }
         wasJumpPressed = isJumpPressed;
-
-        Vector2 velocity = player.getBody().getLinearVelocity();
-
-        if (player.isGrounded()) {
-            if (Math.abs(velocity.x) > 0.1f) {
-                player.setState(Player.PlayerState.STANDING);
-            } else {
-                player.setState(Player.PlayerState.STANDING);
-            }
-        } else {
-            player.setState(Player.PlayerState.JUMPING);
-        }
     }
-
-    /**
-     * Обработка приземления игрока
-     */
-    public void handleLanding() {
-        player.setGrounded(true);
-        if (player.getCurrentState() == Player.PlayerState.JUMPING) {
-            player.setState(Player.PlayerState.CROUCHING);
-        }
-    }
-
-    /**
-     * Установка состояния "на земле"
-     */
-    public void setPlayerGrounded(boolean grounded) {
-        player.setGrounded(grounded);
-    }
-} 
+}
