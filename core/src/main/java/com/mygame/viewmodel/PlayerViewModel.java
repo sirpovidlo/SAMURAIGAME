@@ -66,6 +66,7 @@ public class PlayerViewModel implements ViewModel {
             case CROUCHING:
                 return TextureManager.PLAYER_CROUCH;
             case STANDING:
+                return TextureManager.PLAYER;
             default:
                 return TextureManager.PLAYER;
         }

@@ -4,6 +4,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.mygame.Main;
 import com.mygame.controller.PlayerController;
+import com.badlogic.gdx.utils.Timer;
+import com.mygame.controller.PlayerInput;
 
 /**
  * Класс игрока
@@ -31,6 +33,9 @@ public class Player implements GameObject {
     private boolean facingRight = true;
     private PlayerController controller;
     private Player player;
+    private PlayerInput currentInput;
+    private boolean wasJumpPressed;
+
 
     /**
      * Конструктор игрока, принимающий готовое физическое тело
@@ -46,11 +51,26 @@ public class Player implements GameObject {
         return body.getLinearVelocity();
     }
 
-    /**
-     * Установка контроллера игрока
-     */
-    public void setController(PlayerController controller) {
-        this.controller = controller;
+    public void setInput(PlayerInput input) {
+        this.currentInput = input;
+        processInput();
+    }
+
+    private void processInput() {
+        // Обработка движения
+        if (currentInput.moveRight) {
+            move(Direction.RIGHT);
+        } else if (currentInput.moveLeft) {
+            move(Direction.LEFT);
+        } else {
+            move(Direction.NONE);
+        }
+
+        // Обработка прыжка
+        if (currentInput.jumpPressed && !wasJumpPressed && isGrounded()) {
+            jump();
+        }
+        wasJumpPressed = currentInput.jumpPressed;
     }
 
     /**
@@ -67,50 +87,6 @@ public class Player implements GameObject {
     public float getPositionY()
     {
         return body.getPosition().y;
-    }
-
-    /**
-     * Ускорение вправо
-     */
-    public void accelerateRight() {
-        Vector2 velocity = body.getLinearVelocity();
-
-        // Only accelerate if below max speed
-        if (velocity.x < MAX_SPEED) {
-            body.applyForceToCenter(ACCELERATION * body.getMass(), 0, true);
-        }
-
-        facingRight = true;
-    }
-
-    /**
-     * Ускорение влево
-     */
-    public void accelerateLeft() {
-        Vector2 velocity = body.getLinearVelocity();
-
-        // Only accelerate if below max speed
-        if (velocity.x > -MAX_SPEED) {
-            body.applyForceToCenter(-ACCELERATION * body.getMass(), 0, true);
-        }
-
-        facingRight = false;
-    }
-
-    /**
-     * Замедление
-     */
-    public void decelerate() {
-        Vector2 velocity = body.getLinearVelocity();
-
-        // Apply deceleration force in opposite direction of movement
-        if (Math.abs(velocity.x) > 0.1f) {
-            float decelerationForce = -Math.signum(velocity.x) * DECELERATION * body.getMass();
-            body.applyForceToCenter(decelerationForce, 0, true);
-        } else {
-            // If very slow, just stop completely
-            body.setLinearVelocity(0, velocity.y);
-        }
     }
 
     /**
@@ -146,6 +122,7 @@ public class Player implements GameObject {
      */
     public void setGrounded(boolean grounded) {
         this.isGrounded = grounded;
+
     }
 
     /**
@@ -213,29 +190,27 @@ public class Player implements GameObject {
     /**
      * Обновление состояния игрока на основе текущего движения
      */
-    private void updateState() {
-        Vector2 velocity = body.getLinearVelocity();
 
-        if (isGrounded) {
-            if (Math.abs(velocity.x) > 0.1f) {
-                setState(PlayerState.STANDING);
-            } else {
-                setState(PlayerState.STANDING);
-            }
-        } else {
-            setState(PlayerState.JUMPING);
+
+    private void updateState() {
+        if (getCurrentState() == PlayerState.CROUCHING) {
+            // Установим STANDING через 0.5 секунды (можешь изменить значение)
+            Timer.schedule(new Timer.Task() {
+                @Override
+                public void run() {
+                    setState(PlayerState.STANDING);
+                }
+            }, 0.2f); // Задержка в секундах
         }
     }
+
 
     /**
      * Обновление состояния игрока
      */
     @Override
     public void update() {
-        // Применение управления к игроку
-        if (controller != null) {
-            controller.applyControl(this);
-        }
+
 
         Vector2 position = body.getPosition();
         Vector2 velocity = body.getLinearVelocity();

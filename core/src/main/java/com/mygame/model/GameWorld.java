@@ -5,6 +5,7 @@ import com.badlogic.gdx.physics.box2d.*;
 import com.mygame.Main;
 import com.mygame.controller.PlayerController;
 
+
 /**
  * Класс, отвечающий за физический мир и столкновения
  */
@@ -53,6 +54,7 @@ public class GameWorld {
                     if (player != null) {
                         player.handleLanding();
                     }
+
                 }
             }
 

@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygame.controller.PlayerController;
+import com.mygame.controller.PlayerInput;
 import com.mygame.model.GameModel;
 import com.mygame.model.GameWorld;
 import com.mygame.view.TextureManager;
@@ -42,8 +43,8 @@ public class Main extends ApplicationAdapter {
         gameModel = new GameModel();
 
         // 2. Создание контроллера для игрока (не входит в MVVM, является частью Controller в MVC)
-        playerController = new PlayerController(gameModel.getPlayer());
-        gameModel.getGameWorld().setPlayer(gameModel.getPlayer());
+        playerController = new PlayerController();
+
 
         // 3. Инициализируем TextureManager (часть View)
         // TextureManager инициализируется автоматически при первом обращении
@@ -65,6 +66,9 @@ public class Main extends ApplicationAdapter {
         // Применение вьюпорта
         viewport.apply();
 
+        PlayerInput input = playerController.collectInput();
+
+        gameModel.getPlayer().setInput(input);
         // 1. Обновление модели (бизнес-логика)
         gameModel.update(Gdx.graphics.getDeltaTime());
 
