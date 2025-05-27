@@ -5,13 +5,14 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygame.model.GameModel;
+import com.mygame.model.GameObject;
 import com.mygame.view.TextureManager;
 
 /**
- * Модель представления для земли (ViewModel в MVVM)
- * Преобразует данные модели в формат, удобный для отображения
+ * Модель представления для земли
  */
 public class GroundViewModel implements ViewModel {
+    private static final String GROUND_ID = "ground_id";
     private GameModel gameModel;
     private Viewport viewport;
 
@@ -26,22 +27,22 @@ public class GroundViewModel implements ViewModel {
 
     /**
      * Создание модели представления для земли
-     * @param gameModel модель игры с данными о позиции земли
-     * @param viewport видовой экран для определения размеров
      */
     public GroundViewModel(GameModel gameModel, Viewport viewport) {
         this.gameModel = gameModel;
         this.viewport = viewport;
+        updateModelData(viewport);
+    }
 
-        // Вычисляем начальные данные для отрисовки
-        update(viewport);
+    @Override
+    public String getGameObjectId() {
+        return GROUND_ID;
     }
 
     /**
-     * Обновление данных представления
+     * Обновление данных из модели и viewport
      */
-    @Override
-    public void update(Viewport viewport) {
+    private void updateModelData(Viewport viewport) {
         // Получаем позицию земли из модели
         Vector2 groundPos = gameModel.getGroundPosition();
 
@@ -49,6 +50,14 @@ public class GroundViewModel implements ViewModel {
         width = viewport.getWorldWidth();
         x = groundPos.x - width/2;
         y = groundPos.y - 1; // Смещаем вниз для выравнивания
+    }
+
+    /**
+     * Обновление данных представления
+     */
+    @Override
+    public void update(GameObject gameObject, Viewport viewport) {
+        updateModelData(viewport);
     }
 
     /**

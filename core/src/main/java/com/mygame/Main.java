@@ -10,12 +10,14 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.mygame.controller.PlayerController;
-import com.mygame.controller.PlayerInput;
+import com.mygame.controller.Controller;
+import com.mygame.model.GameObject;
 import com.mygame.model.GameModel;
 import com.mygame.model.GameWorld;
 import com.mygame.view.TextureManager;
 import com.mygame.view.ViewRenderer;
 import com.mygame.viewmodel.ViewModelManager;
+import java.util.Arrays;
 
 /**
  * Основной класс игры
@@ -28,23 +30,17 @@ public class Main extends ApplicationAdapter {
     private ViewRenderer viewRenderer;
     private Viewport viewport;
 
-
-    public static final float VIRTUAL_WIDTH = 40;
-    public static final float VIRTUAL_HEIGHT = 30;
-
     @Override
     public void create() {
         // Инициализация основных компонентов
         batch = new SpriteBatch();
-        viewport = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        viewport = new FitViewport(GameWorld.WORLD_WIDTH, GameWorld.WORLD_HEIGHT);
 
-
-        // 1. Создание модели (Model в MVVM)
-        gameModel = new GameModel();
-
-        // 2. Создание контроллера для игрока (не входит в MVVM, является частью Controller в MVC)
+        // Создание контроллера для игрока
         playerController = new PlayerController();
 
+        // 1. Создание модели (Model в MVVM) с контроллерами
+        gameModel = new GameModel(Arrays.asList(playerController));
 
         // 3. Инициализируем TextureManager (часть View)
         // TextureManager инициализируется автоматически при первом обращении
@@ -60,15 +56,12 @@ public class Main extends ApplicationAdapter {
     @Override
     public void render() {
         // Очистка экрана
-        Gdx.gl.glClearColor(0, 0, 0, 1); // Черный цвет
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Применение вьюпорта
         viewport.apply();
 
-        PlayerInput input = playerController.collectInput();
-
-        gameModel.getPlayer().setInput(input);
         // 1. Обновление модели (бизнес-логика)
         gameModel.update(Gdx.graphics.getDeltaTime());
 
@@ -85,8 +78,8 @@ public class Main extends ApplicationAdapter {
         viewport.update(width, height, true);
 
         ((OrthographicCamera)viewport.getCamera()).position.set(
-            viewport.getWorldWidth()/2,
-            viewport.getWorldHeight()/2,
+            GameWorld.WORLD_WIDTH/2,
+            GameWorld.WORLD_HEIGHT/2,
             0
         );
         viewport.getCamera().update();

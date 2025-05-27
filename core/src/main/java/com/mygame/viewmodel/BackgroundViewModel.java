@@ -3,6 +3,7 @@ package com.mygame.viewmodel;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.mygame.model.GameObject;
 import com.mygame.view.TextureManager;
 
 /**
@@ -10,6 +11,7 @@ import com.mygame.view.TextureManager;
  * Преобразует данные модели в формат, удобный для отображения
  */
 public class BackgroundViewModel implements ViewModel {
+    private static final String BACKGROUND_ID = "background_id";
     private Viewport viewport;
 
     // Данные для отрисовки
@@ -27,21 +29,30 @@ public class BackgroundViewModel implements ViewModel {
      */
     public BackgroundViewModel(Viewport viewport) {
         this.viewport = viewport;
+        updateViewportData(viewport);
+    }
 
-        // Вычисляем данные для отрисовки
-        update(viewport);
+    @Override
+    public String getGameObjectId() {
+        return BACKGROUND_ID;
+    }
+
+    /**
+     * Обновление данных из viewport
+     */
+    private void updateViewportData(Viewport viewport) {
+        width = viewport.getWorldWidth();
+        height = viewport.getWorldHeight();
+        x = 0;
+        y = 0;
     }
 
     /**
      * Обновление данных представления
      */
     @Override
-    public void update(Viewport viewport) {
-        // Получаем размеры вьюпорта для определения размеров фона
-        width = viewport.getWorldWidth();
-        height = viewport.getWorldHeight();
-        x = 0;
-        y = 0;
+    public void update(GameObject gameObject, Viewport viewport) {
+        updateViewportData(viewport);
     }
 
     /**

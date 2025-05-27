@@ -2,20 +2,31 @@ package com.mygame.model;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
-import com.mygame.Main;
-import com.mygame.controller.PlayerController;
 
 
 /**
  * Класс, отвечающий за физический мир и столкновения
  */
 public class GameWorld {
+    // Размеры игрового мира
+    public static final float WORLD_WIDTH = 40.0f;
+    public static final float WORLD_HEIGHT = 30.0f;
+
+    // Константы для размеров игрока
+    public static final float PLAYER_WIDTH = 3.75f;
+    public static final float PLAYER_HEIGHT = 5.645f;
+    public static final float PLAYER_SENSOR_WIDTH = 3.5f;
+    public static final float PLAYER_SENSOR_HEIGHT = 0.5f;
+    public static final float PLAYER_START_X = 1.0f;
+    public static final float PLAYER_START_Y = 5.0f;
+
+    // Константы для земли
+    public static final float GROUND_HEIGHT = 1.0f;
+    public static final float GROUND_Y = GROUND_HEIGHT;
+
     private World world;
     private Body groundBody;
     private Player player;
-
-    // Константа масштабирования между физикой (метры) и рендерингом (пиксели)
-    public static final float PPM = 16.0f;
 
     // Константы для физического движка
     private static final int VELOCITY_ITERATIONS = 12;
@@ -25,9 +36,8 @@ public class GameWorld {
      * Создание физического мира
      */
     public GameWorld() {
-        // Инициализация физического мира с гравитацией (в метрах, а не в пикселях)
+        // Инициализация физического мира с гравитацией
         world = new World(new Vector2(0, -20f), true);
-        // Настройка параметров мира для улучшения физики
         createGround();
         setupContactListener();
     }
@@ -54,7 +64,6 @@ public class GameWorld {
                     if (player != null) {
                         player.handleLanding();
                     }
-
                 }
             }
 
@@ -90,11 +99,7 @@ public class GameWorld {
      * Обновление физического мира
      */
     public void update(float deltaTime) {
-        // Используем фактический deltaTime для синхронизации с отрисовкой
-        // Ограничиваем deltaTime, чтобы избежать туннельного эффекта
-        float clampedDeltaTime = Math.min(deltaTime, 0.016f); // макс. 1/60 сек для более стабильной физики
-
-        // Выполняем симуляцию с улучшенными параметрами
+        float clampedDeltaTime = Math.min(deltaTime, 0.016f);
         world.step(clampedDeltaTime, VELOCITY_ITERATIONS, POSITION_ITERATIONS);
     }
 
@@ -110,25 +115,21 @@ public class GameWorld {
 
     /**
      * Создание физического тела игрока
+     * @return Массив объектов: [0] - тело (Body), [1] - ширина (float), [2] - высота (float)
      */
-    public Body createPlayerBody(float x, float y) {
+    public Object[] createPlayerBody(float x, float y) {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
-
-        // Все сразу в метрах
         bodyDef.position.set(x, y);
         bodyDef.fixedRotation = true;
         bodyDef.linearDamping = 0.1f;
-        bodyDef.bullet = true; // предотвращение сквозных пролётов
+        bodyDef.bullet = true;
 
         Body body = world.createBody(bodyDef);
 
-        // Размеры игрока
-        float widthMetr = 3.75f;
-        float heightMetr = 5.645f;
-
+        // Создание основного тела
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(widthMetr / 2, heightMetr / 2);
+        shape.setAsBox(PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
@@ -136,18 +137,19 @@ public class GameWorld {
         fixtureDef.friction = 0.2f;
         fixtureDef.restitution = 0.0f;
 
-        // Создание основного тела
         body.createFixture(fixtureDef);
         shape.dispose();
 
-        // Сенсор ног (для проверки касания земли)
+        // Сенсор ног
         PolygonShape sensorShape = new PolygonShape();
-        float sensorWidth = 3.5f;   // чуть уже тела
-        float sensorHeight = 0.5f;   // тонкий сенсор
-        float sensorOffsetY = -heightMetr / 2; // смещён вниз от центра тела
+        float sensorOffsetY = -PLAYER_HEIGHT / 2;
 
-        sensorShape.setAsBox(sensorWidth / 2, sensorHeight / 2,
-            new Vector2(0, sensorOffsetY), 0);
+        sensorShape.setAsBox(
+            PLAYER_SENSOR_WIDTH / 2,
+            PLAYER_SENSOR_HEIGHT / 2,
+            new Vector2(0, sensorOffsetY),
+            0
+        );
 
         FixtureDef sensorDef = new FixtureDef();
         sensorDef.shape = sensorShape;
@@ -156,7 +158,7 @@ public class GameWorld {
         body.createFixture(sensorDef).setUserData("footSensor");
         sensorShape.dispose();
 
-        return body;
+        return new Object[] { body, PLAYER_WIDTH, PLAYER_HEIGHT };
     }
 
     /**
@@ -165,14 +167,12 @@ public class GameWorld {
     private void createGround() {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
-
-        // Размещаем землю в нижней части экрана
-        bodyDef.position.set((Main.VIRTUAL_WIDTH) / 2, 1);
+        bodyDef.position.set(WORLD_WIDTH / 2, GROUND_Y);
 
         groundBody = world.createBody(bodyDef);
 
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox((Main.VIRTUAL_WIDTH ) / 2, 1);
+        shape.setAsBox(WORLD_WIDTH / 2, GROUND_HEIGHT);
 
         FixtureDef fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;

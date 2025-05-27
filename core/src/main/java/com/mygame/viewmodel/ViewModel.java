@@ -2,6 +2,7 @@ package com.mygame.viewmodel;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.mygame.model.GameObject;
 
 /**
  * Интерфейс для модели представления в паттерне MVVM
@@ -13,10 +14,15 @@ import com.badlogic.gdx.utils.viewport.Viewport;
  */
 public interface ViewModel {
     /**
+     * Получить идентификатор связанного игрового объекта
+     */
+    String getGameObjectId();
+
+    /**
      * Обновление данных представления на основе данных модели
      * Вызывается перед отрисовкой для обновления внутреннего состояния
      */
-    void update(Viewport viewport);
+    void update(GameObject gameObject, Viewport viewport);
 
     /**
      * Отрисовка объекта с использованием подготовленных данных

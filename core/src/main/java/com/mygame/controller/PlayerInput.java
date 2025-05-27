@@ -9,5 +9,5 @@ public class PlayerInput {
     public boolean jumpPressed;
     public boolean wasJumpPressed;
 
-    // Можно добавить другие параметры ввода
+
 }

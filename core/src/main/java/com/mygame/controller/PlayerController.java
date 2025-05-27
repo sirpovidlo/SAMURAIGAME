@@ -7,49 +7,22 @@ import com.mygame.model.Player;
 /**
  * Контроллер для управления игроком
  */
-public class PlayerController {
-    private boolean isJumpPressed;
-    private boolean wasJumpPressed;
+public class PlayerController implements Controller<Player> {
+    @Override
+    public Class<Player> getObjectType() {
+        return Player.class;
+    }
+
+    @Override
+    public void apply(Player controlledObject) {
+        PlayerInput input = collectInput();
+        controlledObject.setInput(input);
+    }
 
     /**
-     * Конструктор контроллера с привязкой к игроку
+     * Сбор текущего пользовательского ввода
      */
-//    public PlayerController(Player player) {
-//        this.isJumpPressed = false;
-//        this.wasJumpPressed = false;
-//
-//        // Устанавливаем контроллер для игрока
-//        player.setController(this);
-//    }
-//
-//    /**
-//     * Обработка входных данных и применение к игроку
-//     */
-//    public void applyControl(Player player) {
-//        // Проверка нажатия клавиш
-//        boolean movingRight = Gdx.input.isKeyPressed(Input.Keys.D);
-//        boolean movingLeft = Gdx.input.isKeyPressed(Input.Keys.A);
-//        boolean jumping = Gdx.input.isKeyPressed(Input.Keys.SPACE);
-//
-//        // Обработка прыжка
-//        isJumpPressed = jumping;
-//
-//        // Обработка движения
-//        if (movingRight) {
-//            player.move(Player.Direction.RIGHT);
-//        } else if (movingLeft) {
-//            player.move(Player.Direction.LEFT);
-//        } else {
-//            player.move(Player.Direction.NONE);
-//        }
-//
-//        // Обработка прыжка
-//        if (isJumpPressed && !wasJumpPressed && player.isGrounded()) {
-//            player.jump();
-//        }
-//        wasJumpPressed = isJumpPressed;
-//    }
-    public PlayerInput collectInput() {
+    private PlayerInput collectInput() {
         PlayerInput input = new PlayerInput();
 
         input.moveRight = Gdx.input.isKeyPressed(Input.Keys.D);
